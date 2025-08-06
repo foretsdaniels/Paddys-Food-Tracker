@@ -1,0 +1,174 @@
+✅ Final Features Summary
+Inputs (CSV):
+
+ingredient_info.csv — unit costs
+
+input_stock.csv — received/stocked amounts
+
+usage.csv — amount used
+
+waste.csv — amount wasted
+
+Calculations:
+
+Total used
+
+Waste
+
+Shrinkage (missing)
+
+Cost breakdowns (used, wasted, shrinkage)
+
+GUI (PySimpleGUI):
+
+File upload selectors for each CSV
+
+“Run Report” button
+
+Display results in a table
+
+“Export” buttons:
+
+📄 PDF Report
+
+📊 Excel Report
+
+Output:
+
+Nicely formatted table
+
+Summary totals
+
+Optional: Pie/bar charts (if desired later)
+
+I'll begin building the script. You’ll receive:
+
+main.py
+
+Sample CSVs
+
+requirements.txt
+
+All export-ready (PDF, XLSX)
+
+Please sit tight — I’ll deliver the files shortly.
+
+
+
+
+
+
+
+
+You said:
+build the script now
+
+
+ChatGPT said:
+
+Analysis errored
+python
+Always show details
+
+Copy
+import pandas as pd
+import PySimpleGUI as sg
+import os
+from io import BytesIO
+from fpdf import FPDF
+import xlsxwriter
+import tempfile
+
+# Function to perform calculations
+def process_data(ingredient_info, input_stock, usage, waste):
+    df = ingredient_info.copy()
+    df = df.set_index('Ingredient')
+
+    df['Used'] = usage.set_index('Ingredient')['Used Qty']
+    df['Wasted'] = waste.set_index('Ingredient')['Wasted Qty']
+    df['Stocked'] = input_stock.set_index('Ingredient')['Received Qty']
+
+    df.fillna(0, inplace=True)
+
+    df['Expected Use'] = df['Used'] + df['Wasted']
+    df['Shrinkage'] = df['Stocked'] - df['Expected Use']
+    df['Total Cost'] = df['Used'] * df['Unit Cost']
+    df['Waste Cost'] = df['Wasted'] * df['Unit Cost']
+    df['Shrinkage Cost'] = df['Shrinkage'] * df['Unit Cost']
+
+    df.reset_index(inplace=True)
+    return df
+
+# Export to Excel
+def export_to_excel(df, filepath):
+    df.to_excel(filepath, index=False)
+
+# Export to PDF
+def export_to_pdf(df, filepath):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=10)
+    col_width = pdf.w / (len(df.columns) + 1)
+
+    for i, column in enumerate(df.columns):
+        pdf.cell(col_width, 10, str(column), border=1)
+    pdf.ln()
+
+    for _, row in df.iterrows():
+        for item in row:
+            pdf.cell(col_width, 10, str(round(item, 2)), border=1)
+        pdf.ln()
+
+    pdf.output(filepath)
+
+# GUI Layout
+layout = [
+    [sg.Text('Ingredient Info CSV'), sg.Input(), sg.FileBrowse(key='-INGREDIENT-')],
+    [sg.Text('Input Stock CSV'), sg.Input(), sg.FileBrowse(key='-STOCK-')],
+    [sg.Text('Usage CSV'), sg.Input(), sg.FileBrowse(key='-USAGE-')],
+    [sg.Text('Waste CSV'), sg.Input(), sg.FileBrowse(key='-WASTE-')],
+    [sg.Button('Run Report'), sg.Button('Export to Excel'), sg.Button('Export to PDF')],
+    [sg.Text('Report Table')],
+    [sg.Table(values=[], headings=[], key='-TABLE-', auto_size_columns=True,
+              justification='left', num_rows=10, expand_x=True, expand_y=True)]
+]
+
+window = sg.Window("Restaurant Ingredient Tracker", layout, resizable=True)
+
+report_df = pd.DataFrame()
+
+while True:
+    event, values = window.read()
+    if event == sg.WINDOW_CLOSED:
+        break
+
+    elif event == 'Run Report':
+        try:
+            ingredient_info = pd.read_csv(values['-INGREDIENT-'])
+            input_stock = pd.read_csv(values['-STOCK-'])
+            usage = pd.read_csv(values['-USAGE-'])
+            waste = pd.read_csv(values['-WASTE-'])
+
+            report_df = process_data(ingredient_info, input_stock, usage, waste)
+            window['-TABLE-'].update(values=report_df.values.tolist(), headings=report_df.columns.tolist())
+
+        except Exception as e:
+            sg.popup_error(f"Error processing files:\n{e}")
+
+    elif event == 'Export to Excel' and not report_df.empty:
+        filepath = sg.popup_get_file('Save Excel File', save_as=True, no_window=True, file_types=(("Excel Files", "*.xlsx"),))
+        if filepath:
+            if not filepath.endswith(".xlsx"):
+                filepath += ".xlsx"
+            export_to_excel(report_df, filepath)
+            sg.popup("Excel file saved.")
+
+    elif event == 'Export to PDF' and not report_df.empty:
+        filepath = sg.popup_get_file('Save PDF File', save_as=True, no_window=True, file_types=(("PDF Files", "*.pdf"),))
+        if filepath:
+            if not filepath.endswith(".pdf"):
+                filepath += ".pdf"
+            export_to_pdf(report_df, filepath)
+            sg.popup("PDF file saved.")
+
+window.close()
