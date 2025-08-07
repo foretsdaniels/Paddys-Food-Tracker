@@ -5,6 +5,9 @@ from fpdf import FPDF
 from typing import Optional, Tuple
 import logging
 from datetime import datetime
+import os
+import requests
+from urllib.parse import urlencode
 
 
 MONEY_COLUMNS = [
@@ -23,6 +26,110 @@ st.set_page_config(
     page_icon="🍽️",
     layout="wide"
 )
+
+# Replit Auth Configuration
+def get_replit_user_info():
+    """Get user information from Replit environment variables."""
+    user_info = {
+        'id': os.getenv('REPL_OWNER'),
+        'name': os.getenv('REPL_OWNER'),
+        'authenticated': os.getenv('REPL_OWNER') is not None,
+        'repl_id': os.getenv('REPL_ID')
+    }
+    return user_info
+
+def is_replit_environment():
+    """Check if running in Replit environment."""
+    return os.getenv('REPL_ID') is not None
+
+# Fallback authentication for non-Replit environments
+DEMO_USERS = {
+    "admin": "admin123",
+    "manager": "manager456", 
+    "staff": "staff789"
+}
+
+def verify_demo_password(username: str, password: str) -> bool:
+    """Verify demo user credentials for non-Replit environments."""
+    return username in DEMO_USERS and DEMO_USERS[username] == password
+
+def show_replit_auth_info():
+    """Display Replit authentication information."""
+    user_info = get_replit_user_info()
+    
+    if user_info['authenticated']:
+        st.success(f"🔐 Authenticated via Replit as: **{user_info['name']}**")
+        with st.sidebar:
+            st.markdown("### 🔐 Replit Auth")
+            st.markdown(f"**User:** {user_info['name']}")
+            st.markdown(f"**Repl ID:** {user_info['repl_id']}")
+            if st.button("ℹ️ About Replit Auth"):
+                st.info("You are authenticated through Replit's built-in authentication system. No additional login required!")
+        return True
+    else:
+        st.error("🔐 Replit authentication required. Please ensure you're logged into Replit.")
+        return False
+
+def show_demo_login():
+    """Display demo login form for non-Replit environments."""
+    st.title("🔐 Restaurant Ingredient Tracker - Demo Login")
+    st.info("Running in demo mode. Use the credentials below to test the application.")
+    
+    with st.form("demo_login_form"):
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.markdown("### Login Credentials")
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            login_button = st.form_submit_button("Login", type="primary")
+        
+        with col2:
+            st.markdown("### Demo Accounts")
+            st.info("""
+            **Available Demo Accounts:**
+            - Username: `admin` Password: `admin123`
+            - Username: `manager` Password: `manager456`  
+            - Username: `staff` Password: `staff789`
+            """)
+    
+    if login_button:
+        if verify_demo_password(username, password):
+            st.session_state.demo_authenticated = True
+            st.session_state.demo_username = username
+            st.success(f"Welcome, {username}!")
+            st.rerun()
+        else:
+            st.error("Invalid username or password. Please try again.")
+
+def show_demo_logout():
+    """Display logout option for demo mode."""
+    with st.sidebar:
+        st.markdown("### 🔐 Demo Mode")
+        st.markdown(f"**User:** {st.session_state.get('demo_username', 'Unknown')}")
+        if st.button("🚪 Logout"):
+            st.session_state.demo_authenticated = False
+            st.session_state.demo_username = None
+            st.session_state.processed_data = None
+            st.session_state.show_sample_data = False
+            st.success("Logged out successfully!")
+            st.rerun()
+
+def check_authentication():
+    """Check if user is authenticated via Replit Auth or demo mode."""
+    if is_replit_environment():
+        # Use Replit Auth
+        return show_replit_auth_info()
+    else:
+        # Use demo mode for local/non-Replit environments
+        if "demo_authenticated" not in st.session_state:
+            st.session_state.demo_authenticated = False
+        
+        if not st.session_state.demo_authenticated:
+            show_demo_login()
+            return False
+        else:
+            show_demo_logout()
+            return True
 
 def validate_csv_structure(df: pd.DataFrame, required_columns: list, file_type: str) -> bool:
     """Validate that the CSV has the required columns and numeric data."""
@@ -420,9 +527,6 @@ def display_results(df: pd.DataFrame) -> None:
     ascending = sort_by == "Ingredient"  # Sort ingredient names ascending, costs descending
     filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
     
-    # Reset index to ensure proper alignment with styling
-    filtered_df = filtered_df.reset_index(drop=True)
-    
     # Format the display dataframe
     display_df = filtered_df.copy()
     
@@ -435,24 +539,22 @@ def display_results(df: pd.DataFrame) -> None:
         if col in display_df.columns:
             display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}")
     
-    # Create a simpler highlighting approach using filtered numeric data
+    # Create highlighting function using the original numeric values before formatting
     def highlight_issues(row):
         try:
-            # Get the index in the filtered dataframe
-            idx = row.name
-            if idx < len(filtered_df):
-                original_row = filtered_df.iloc[idx]
-                
-                # Check conditions using original numeric values
-                high_shrinkage = original_row['Shrinkage Cost'] > 10
-                missing_stock = original_row['Stocked'] == 0 and (original_row['Used'] > 0 or original_row['Wasted'] > 0)
-                
-                if high_shrinkage:
-                    return ['background-color: #ffebee; color: #000000;'] * len(row)  # Light red with black text
-                elif missing_stock:
-                    return ['background-color: #fff3e0; color: #000000;'] * len(row)  # Light orange with black text
+            # Get the corresponding row from filtered_df using the same index
+            original_row = filtered_df.loc[row.name]
             
-            return ['background-color: white; color: #000000;'] * len(row)  # White background with black text
+            # Check conditions using original numeric values
+            high_shrinkage = original_row['Shrinkage Cost'] > 10
+            missing_stock = original_row['Stocked'] == 0 and (original_row['Used'] > 0 or original_row['Wasted'] > 0)
+            
+            if high_shrinkage:
+                return ['background-color: #ffebee; color: #000000;'] * len(row)  # Light red with black text
+            elif missing_stock:
+                return ['background-color: #fff3e0; color: #000000;'] * len(row)  # Light orange with black text
+            else:
+                return ['background-color: white; color: #000000;'] * len(row)  # White background with black text
         except:
             return ['background-color: white; color: #000000;'] * len(row)  # Default to white if any error
     
@@ -509,6 +611,10 @@ def render_export_buttons(df: pd.DataFrame) -> None:
 # Main application
 def main():
     """Streamlit application entry point."""
+    
+    # Check authentication first
+    if not check_authentication():
+        return
 
     st.title("🍽️ Restaurant Ingredient Tracker")
     st.markdown("Upload your CSV files to analyze ingredient usage, waste, and costs.")
