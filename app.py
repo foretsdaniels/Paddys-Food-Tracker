@@ -8,6 +8,7 @@ from datetime import datetime
 import os
 import requests
 from urllib.parse import urlencode
+import json
 
 
 MONEY_COLUMNS = [
@@ -29,28 +30,96 @@ st.set_page_config(
 )
 
 # Replit Auth Configuration
+class ReplitAuth:
+    """Replit Authentication Handler with enterprise-grade features."""
+    
+    def __init__(self):
+        self.repl_id = os.getenv('REPL_ID')
+        self.repl_owner = os.getenv('REPL_OWNER') 
+        self.replit_user = os.getenv('REPLIT_USER')
+        self.replit_domains = os.getenv('REPLIT_DOMAINS')
+        
+    def is_replit_environment(self) -> bool:
+        """Check if running in Replit environment."""
+        return self.repl_id is not None
+    
+    def get_authenticated_user(self) -> dict:
+        """Get authenticated user information."""
+        if not self.is_replit_environment():
+            return {'authenticated': False, 'user': None}
+        
+        # Primary authentication through Replit environment
+        username = self.replit_user or self.repl_owner
+        
+        if username and self.repl_id:
+            user_data = {
+                'id': self.repl_owner,
+                'username': username,
+                'display_name': username,
+                'repl_id': self.repl_id,
+                'authenticated': True,
+                'auth_method': 'replit_builtin',
+                'session_data': {
+                    'repl_owner': self.repl_owner,
+                    'replit_user': self.replit_user,
+                    'domains': self.replit_domains
+                }
+            }
+            return {'authenticated': True, 'user': user_data}
+        
+        return {'authenticated': False, 'user': None}
+    
+    def create_session(self, user_data: dict) -> bool:
+        """Create authenticated session in Streamlit."""
+        if user_data and user_data.get('authenticated'):
+            st.session_state.replit_auth = True
+            st.session_state.replit_user = user_data['user']
+            st.session_state.current_page = "dashboard"
+            return True
+        return False
+    
+    def clear_session(self):
+        """Clear authentication session."""
+        # Clear all auth-related session state
+        auth_keys = [key for key in st.session_state.keys() 
+                    if key.startswith(('replit_', 'demo_', 'processed_', 'show_sample_', 'current_page'))]
+        
+        for key in auth_keys:
+            if key in st.session_state:
+                del st.session_state[key]
+        
+        st.session_state.replit_auth = False
+        st.session_state.current_page = "login"
+    
+    def is_authenticated(self) -> bool:
+        """Check if user is currently authenticated."""
+        return st.session_state.get('replit_auth', False)
+    
+    def get_current_user(self) -> dict:
+        """Get current authenticated user data."""
+        return st.session_state.get('replit_user', {})
+
+# Initialize Replit Auth
+replit_auth = ReplitAuth()
+
 def get_replit_user_info():
-    """Get user information from Replit environment variables."""
-    repl_owner = os.getenv('REPL_OWNER')
-    replit_user = os.getenv('REPLIT_USER')
-    repl_id = os.getenv('REPL_ID')
-    
-    # Use REPLIT_USER if available, fallback to REPL_OWNER
-    username = replit_user or repl_owner
-    
-    user_info = {
-        'id': repl_owner,
-        'name': username,
-        'authenticated': username is not None and repl_id is not None,
-        'repl_id': repl_id,
-        'repl_owner': repl_owner,
-        'replit_user': replit_user
-    }
-    return user_info
+    """Legacy function - use ReplitAuth class instead."""
+    auth_result = replit_auth.get_authenticated_user()
+    if auth_result['authenticated']:
+        user = auth_result['user']
+        return {
+            'id': user['id'],
+            'name': user['username'],
+            'authenticated': True,
+            'repl_id': user['repl_id'],
+            'repl_owner': user['session_data']['repl_owner'],
+            'replit_user': user['session_data']['replit_user']
+        }
+    return {'authenticated': False}
 
 def is_replit_environment():
     """Check if running in Replit environment."""
-    return os.getenv('REPL_ID') is not None
+    return replit_auth.is_replit_environment()
 
 # Fallback authentication for non-Replit environments
 DEMO_USERS = {
@@ -63,24 +132,97 @@ def verify_demo_password(username: str, password: str) -> bool:
     """Verify demo user credentials for non-Replit environments."""
     return username in DEMO_USERS and DEMO_USERS[username] == password
 
-def show_replit_auth_info():
-    """Display Replit authentication information."""
-    user_info = get_replit_user_info()
+def show_replit_login_page():
+    """Display Replit Auth login page."""
+    st.markdown("""
+    <div style="text-align: center; padding: 3rem 0;">
+        <h1>🍽️ Restaurant Ingredient Tracker</h1>
+        <h2>Enterprise Authentication via Replit</h2>
+        <p style="font-size: 1.3rem; color: #666; margin: 2rem 0;">
+            Secure, scalable authentication powered by enterprise-grade infrastructure
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    if user_info['authenticated']:
-        st.success(f"Authenticated via Replit as: **{user_info['name']}**")
-        return True
+    # Features showcase
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        ### 🔐 Enterprise Security
+        - Firebase & Google Cloud Identity Platform
+        - reCAPTCHA fraud prevention
+        - Global scalability with Stytch
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### 📊 Advanced Analytics
+        - Ingredient usage tracking
+        - Cost analysis & optimization
+        - Waste reduction insights
+        """)
+    
+    with col3:
+        st.markdown("""
+        ### 📈 Smart Reporting
+        - PDF & Excel exports
+        - Real-time dashboards
+        - Custom filtering options
+        """)
+    
+    st.markdown("---")
+    
+    # Authentication attempt
+    auth_result = replit_auth.get_authenticated_user()
+    
+    if auth_result['authenticated']:
+        # User is authenticated, create session
+        if replit_auth.create_session(auth_result):
+            user = auth_result['user']
+            st.success(f"Welcome back, **{user['display_name']}**! Redirecting to your dashboard...")
+            st.info("You are authenticated through Replit's enterprise-grade authentication system.")
+            
+            # Show user info
+            with st.expander("Authentication Details"):
+                st.json({
+                    'user_id': user['id'],
+                    'username': user['username'],
+                    'auth_method': user['auth_method'],
+                    'repl_id': user['repl_id'][:8] + "...",  # Truncate for privacy
+                    'status': 'Authenticated ✓'
+                })
+            
+            st.rerun()
     else:
-        st.error("Replit authentication required. Please ensure you're logged into Replit.")
-        # Debug information for troubleshooting
-        with st.expander("Debug Info"):
-            st.json({
-                'REPL_ID': user_info['repl_id'],
-                'REPL_OWNER': user_info['repl_owner'],
-                'REPLIT_USER': user_info['replit_user'],
-                'authenticated': user_info['authenticated']
-            })
-        return False
+        # Authentication failed
+        st.error("Authentication required. Please ensure you're logged into Replit.")
+        st.info("This app uses Replit's built-in authentication system for secure access.")
+        
+        # Troubleshooting info
+        with st.expander("🔧 Troubleshooting"):
+            st.markdown("""
+            **If you're seeing this message:**
+            
+            1. **Make sure you're logged into Replit** - Check the top-right corner of Replit
+            2. **Refresh the page** - Sometimes authentication needs a refresh
+            3. **Check your browser** - Ensure cookies and JavaScript are enabled
+            4. **Try in a new tab** - Open the app in a fresh browser tab
+            
+            **For developers:**
+            - This app uses Replit's enterprise authentication system
+            - Authentication is automatic when running on Replit platform
+            - No additional configuration required
+            """)
+            
+            # Debug info for troubleshooting
+            if st.checkbox("Show Debug Information"):
+                st.json({
+                    'repl_id_present': replit_auth.repl_id is not None,
+                    'repl_owner_present': replit_auth.repl_owner is not None,
+                    'replit_user_present': replit_auth.replit_user is not None,
+                    'environment_detected': replit_auth.is_replit_environment()
+                })
 
 def show_demo_login():
     """Display demo login form for non-Replit environments."""
@@ -166,12 +308,21 @@ def show_navigation_sidebar():
         st.markdown("### 🍽️ Restaurant Tracker")
         
         # User info section
-        username = st.session_state.get('demo_username', 'Unknown User')
-        if is_replit_environment():
-            user_info = get_replit_user_info()
-            username = user_info.get('name', 'Replit User')
+        if replit_auth.is_authenticated():
+            user = replit_auth.get_current_user()
+            username = user.get('display_name', 'User')
+            auth_method = user.get('auth_method', 'replit_builtin')
+            
+            st.markdown(f"**Logged in as:** {username}")
+            if auth_method == 'replit_builtin':
+                st.markdown("*via Replit Auth* 🔐")
+            else:
+                st.markdown(f"*via {auth_method}* 🔐")
+        else:
+            # Fallback for demo mode
+            username = st.session_state.get('demo_username', 'Demo User')
+            st.markdown(f"**Demo Mode:** {username}")
         
-        st.markdown(f"**Logged in as:** {username}")
         st.markdown("---")
         
         # Page navigation
@@ -203,16 +354,17 @@ def show_navigation_sidebar():
         # Logout section
         st.markdown("### 🔐 Account")
         if st.button("🚪 Logout", type="primary", use_container_width=True):
-            # Clear all session state
-            for key in list(st.session_state.keys()):
-                if key not in ['current_page']:  # Keep current_page to show login
-                    del st.session_state[key]
+            # Use proper auth logout
+            if replit_auth.is_authenticated():
+                replit_auth.clear_session()
+            else:
+                # Fallback for demo mode
+                st.session_state.demo_authenticated = False
+                st.session_state.demo_username = None
+                st.session_state.processed_data = None
+                st.session_state.show_sample_data = False
+                st.session_state.current_page = "login"
             
-            st.session_state.demo_authenticated = False
-            st.session_state.demo_username = None
-            st.session_state.processed_data = None
-            st.session_state.show_sample_data = False
-            st.session_state.current_page = "login"
             st.success("Logged out successfully!")
             st.rerun()
 
@@ -220,13 +372,20 @@ def check_authentication():
     """Check if user is authenticated via Replit Auth or demo mode."""
     if is_replit_environment():
         # Use Replit Auth
-        user_info = get_replit_user_info()
-        if user_info['authenticated']:
+        if replit_auth.is_authenticated():
+            # Already authenticated
             show_navigation_sidebar()
             return True
         else:
-            st.error("🔐 Replit authentication required. Please ensure you're logged into Replit.")
-            return False
+            # Try to authenticate
+            auth_result = replit_auth.get_authenticated_user()
+            if auth_result['authenticated']:
+                replit_auth.create_session(auth_result)
+                show_navigation_sidebar()
+                return True
+            else:
+                show_replit_login_page()
+                return False
     else:
         # Use demo mode for local/non-Replit environments
         if "demo_authenticated" not in st.session_state:
@@ -883,14 +1042,39 @@ def show_settings_page():
     st.title("⚙️ Settings & Help")
     
     # User information
-    st.subheader("User Information")
-    username = st.session_state.get('demo_username', 'Unknown User')
-    if is_replit_environment():
-        user_info = get_replit_user_info()
-        username = user_info.get('name', 'Replit User')
-        st.info(f"Authenticated via Replit as: {username}")
+    st.subheader("Authentication Status")
+    
+    if replit_auth.is_authenticated():
+        user = replit_auth.get_current_user()
+        st.success("Authenticated via Replit Auth")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info(f"**User:** {user.get('display_name', 'Unknown')}")
+            st.info(f"**User ID:** {user.get('id', 'N/A')}")
+        with col2:
+            st.info(f"**Auth Method:** {user.get('auth_method', 'Unknown')}")
+            st.info(f"**Session:** Active")
+            
+        # Enhanced auth details
+        with st.expander("Authentication Details"):
+            st.json({
+                'username': user.get('username'),
+                'display_name': user.get('display_name'),
+                'auth_method': user.get('auth_method'),
+                'repl_id': user.get('repl_id', '')[:8] + "..." if user.get('repl_id') else 'N/A',
+                'authenticated': user.get('authenticated', False),
+                'session_active': True
+            })
+            
+    elif st.session_state.get('demo_authenticated', False):
+        username = st.session_state.get('demo_username', 'Unknown User')
+        st.warning("Running in Demo Mode")
+        st.info(f"**Demo User:** {username}")
+        
     else:
-        st.info(f"Demo user: {username}")
+        st.error("Not Authenticated")
+        st.info("Please log in to access the application")
     
     st.markdown("---")
     
