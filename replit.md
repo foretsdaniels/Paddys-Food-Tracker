@@ -2,6 +2,11 @@
 
 The Restaurant Ingredient Tracker is a Streamlit-based web application designed to help restaurants analyze their ingredient usage, waste, and costs. The application processes multiple CSV data sources (ingredient information, stock received, usage, and waste) to calculate key metrics including shrinkage, cost breakdowns, and provide comprehensive reporting capabilities with PDF and Excel export functionality.
 
+## Recent Changes
+- Added comprehensive README.md file for GitHub repository documentation
+- Created sample CSV files for testing (ingredient_info, input_stock, usage, waste)
+- Application is fully functional with PDF and Excel export capabilities
+
 # User Preferences
 
 Preferred communication style: Simple, everyday language.
