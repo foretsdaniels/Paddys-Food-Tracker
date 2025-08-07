@@ -423,17 +423,7 @@ def display_results(df: pd.DataFrame) -> None:
     # Format the display dataframe
     display_df = filtered_df.copy()
     
-    # Add visual indicators for problematic items
-    def highlight_issues(row):
-        styles = [''] * len(row)
-        # Highlight high shrinkage items in red
-        if float(row['Shrinkage Cost'].replace('$', '').replace(',', '')) > 10:
-            styles = ['background-color: #ffebee'] * len(row)  # Light red
-        # Highlight missing stock items in yellow
-        elif float(row['Stocked'].replace(',', '')) == 0 and (float(row['Used'].replace(',', '')) > 0 or float(row['Wasted'].replace(',', '')) > 0):
-            styles = ['background-color: #fff3e0'] * len(row)  # Light orange
-        return styles
-    
+    # First format the numbers before applying styling
     for col in MONEY_COLUMNS:
         if col in display_df.columns:
             display_df[col] = display_df[col].apply(lambda x: f"${x:.2f}")
@@ -441,8 +431,24 @@ def display_results(df: pd.DataFrame) -> None:
     for col in NUMBER_COLUMNS:
         if col in display_df.columns:
             display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}")
-
-    # Apply conditional styling and display
+    
+    # Create a simpler highlighting approach using original numeric data for comparison
+    def highlight_issues(row):
+        # Use original filtered_df for numeric comparisons
+        original_row = filtered_df.loc[row.name]
+        
+        # Check conditions using original numeric values
+        high_shrinkage = original_row['Shrinkage Cost'] > 10
+        missing_stock = original_row['Stocked'] == 0 and (original_row['Used'] > 0 or original_row['Wasted'] > 0)
+        
+        if high_shrinkage:
+            return ['background-color: #ffebee; color: #000000;'] * len(row)  # Light red with black text
+        elif missing_stock:
+            return ['background-color: #fff3e0; color: #000000;'] * len(row)  # Light orange with black text
+        else:
+            return ['background-color: white; color: #000000;'] * len(row)  # White background with black text
+    
+    # Apply styling and display
     styled_df = display_df.style.apply(highlight_issues, axis=1)
     st.dataframe(styled_df, use_container_width=True, height=400)
     
