@@ -58,8 +58,9 @@ def validate_csv_structure(df: pd.DataFrame, required_columns: list, file_type: 
             return False
             
         # Check for negative values (which don't make sense for costs/quantities)
-        if (converted < 0).any():
-            negative_rows = df[converted < 0]
+        negative_mask = converted < 0
+        if negative_mask.any():
+            negative_rows = df[negative_mask]
             st.warning(f"{file_type} has negative values in column '{col}' at rows: {negative_rows.index.tolist()}")
 
     # Warn about any unexpected extra columns (potential typos)
@@ -402,8 +403,8 @@ def display_results(df: pd.DataFrame) -> None:
         filtered_df = filtered_df[(filtered_df['Waste Cost'] > 1) | (filtered_df['Shrinkage Cost'] > 1)]
     
     # Sort the dataframe
-    ascending = sort_by != "Total Cost"  # Sort costs in descending order by default
-    filtered_df = filtered_df.sort_values(sort_by, ascending=ascending)
+    ascending = sort_by == "Ingredient"  # Sort ingredient names ascending, costs descending
+    filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
     
     # Format the display dataframe
     display_df = filtered_df.copy()
