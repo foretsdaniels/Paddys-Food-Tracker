@@ -24,7 +24,8 @@ NUMBER_COLUMNS = ["Used", "Wasted", "Stocked"]
 st.set_page_config(
     page_title="Restaurant Ingredient Tracker",
     page_icon="🍽️",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 # Replit Auth Configuration
@@ -72,45 +73,135 @@ def show_replit_auth_info():
 
 def show_demo_login():
     """Display demo login form for non-Replit environments."""
-    st.title("🔐 Restaurant Ingredient Tracker - Demo Login")
+    # Welcome landing page
+    st.markdown("""
+    <div style="text-align: center; padding: 2rem 0;">
+        <h1>🍽️ Restaurant Ingredient Tracker</h1>
+        <h3>Analyze ingredient usage, waste, and costs</h3>
+        <p style="font-size: 1.2rem; color: #666;">
+            Track your restaurant's inventory efficiency and reduce waste costs
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Features overview
+    st.markdown("---")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("""
+        ### 📊 Data Analysis
+        - Upload CSV files for analysis
+        - Calculate usage, waste & shrinkage
+        - Identify cost-saving opportunities
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### 📈 Reporting
+        - Export to PDF & Excel formats  
+        - View detailed cost breakdowns
+        - Track trends over time
+        """)
+    
+    with col3:
+        st.markdown("""
+        ### ⚡ Easy to Use
+        - Simple file upload interface
+        - Sample data for testing
+        - Instant report generation
+        """)
+    
+    st.markdown("---")
     st.info("Running in demo mode. Use the credentials below to test the application.")
     
-    with st.form("demo_login_form"):
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.markdown("### Login Credentials")
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
-            login_button = st.form_submit_button("Login", type="primary")
-        
+    # Login form in centered container
+    with st.container():
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.markdown("### Demo Accounts")
-            st.info("""
-            **Available Demo Accounts:**
-            - Username: `admin` Password: `admin123`
-            - Username: `manager` Password: `manager456`  
-            - Username: `staff` Password: `staff789`
-            """)
-    
-    if login_button:
-        if verify_demo_password(username, password):
-            st.session_state.demo_authenticated = True
-            st.session_state.demo_username = username
-            st.success(f"Welcome, {username}!")
-            st.rerun()
-        else:
-            st.error("Invalid username or password. Please try again.")
+            with st.form("demo_login_form"):
+                st.markdown("### 🔐 Login to Continue")
+                username = st.text_input("Username", placeholder="Enter username")
+                password = st.text_input("Password", type="password", placeholder="Enter password")
+                login_button = st.form_submit_button("🚀 Login", type="primary", use_container_width=True)
+                
+                # Demo accounts info
+                with st.expander("👥 Available Demo Accounts"):
+                    st.markdown("""
+                    **Choose from these test accounts:**
+                    
+                    🔹 **Admin Account**  
+                    Username: `admin` | Password: `admin123`
+                    
+                    🔹 **Manager Account**  
+                    Username: `manager` | Password: `manager456`
+                    
+                    🔹 **Staff Account**  
+                    Username: `staff` | Password: `staff789`
+                    """)
+                
+                if login_button:
+                    if verify_demo_password(username, password):
+                        st.session_state.demo_authenticated = True
+                        st.session_state.demo_username = username
+                        st.session_state.current_page = "dashboard"
+                        st.success(f"Welcome, {username}! Redirecting to dashboard...")
+                        st.rerun()
+                    else:
+                        st.error("Invalid username or password. Please try again.")
 
-def show_demo_logout():
-    """Display logout option for demo mode."""
+def show_navigation_sidebar():
+    """Display navigation sidebar with page selection and logout."""
     with st.sidebar:
-        st.markdown("### 🔐 Demo Mode")
-        st.markdown(f"**User:** {st.session_state.get('demo_username', 'Unknown')}")
-        if st.button("🚪 Logout"):
+        st.markdown("### 🍽️ Restaurant Tracker")
+        
+        # User info section
+        username = st.session_state.get('demo_username', 'Unknown User')
+        if is_replit_environment():
+            user_info = get_replit_user_info()
+            username = user_info.get('name', 'Replit User')
+        
+        st.markdown(f"**Logged in as:** {username}")
+        st.markdown("---")
+        
+        # Page navigation
+        st.markdown("### 📋 Navigation")
+        
+        # Initialize current_page if not exists
+        if "current_page" not in st.session_state:
+            st.session_state.current_page = "dashboard"
+        
+        # Navigation buttons
+        if st.button("🏠 Dashboard", type="secondary", use_container_width=True):
+            st.session_state.current_page = "dashboard"
+            st.rerun()
+            
+        if st.button("📊 Analytics", type="secondary", use_container_width=True):
+            st.session_state.current_page = "analytics"
+            st.rerun()
+            
+        if st.button("📤 Reports", type="secondary", use_container_width=True):
+            st.session_state.current_page = "reports"
+            st.rerun()
+            
+        if st.button("⚙️ Settings", type="secondary", use_container_width=True):
+            st.session_state.current_page = "settings"
+            st.rerun()
+        
+        st.markdown("---")
+        
+        # Logout section
+        st.markdown("### 🔐 Account")
+        if st.button("🚪 Logout", type="primary", use_container_width=True):
+            # Clear all session state
+            for key in list(st.session_state.keys()):
+                if key not in ['current_page']:  # Keep current_page to show login
+                    del st.session_state[key]
+            
             st.session_state.demo_authenticated = False
             st.session_state.demo_username = None
             st.session_state.processed_data = None
             st.session_state.show_sample_data = False
+            st.session_state.current_page = "login"
             st.success("Logged out successfully!")
             st.rerun()
 
@@ -118,7 +209,13 @@ def check_authentication():
     """Check if user is authenticated via Replit Auth or demo mode."""
     if is_replit_environment():
         # Use Replit Auth
-        return show_replit_auth_info()
+        user_info = get_replit_user_info()
+        if user_info['authenticated']:
+            show_navigation_sidebar()
+            return True
+        else:
+            st.error("🔐 Replit authentication required. Please ensure you're logged into Replit.")
+            return False
     else:
         # Use demo mode for local/non-Replit environments
         if "demo_authenticated" not in st.session_state:
@@ -128,7 +225,7 @@ def check_authentication():
             show_demo_login()
             return False
         else:
-            show_demo_logout()
+            show_navigation_sidebar()
             return True
 
 def validate_csv_structure(df: pd.DataFrame, required_columns: list, file_type: str) -> bool:
@@ -608,15 +705,9 @@ def render_export_buttons(df: pd.DataFrame) -> None:
             except Exception as e:
                 st.error(f"❌ Error creating PDF report: {str(e)}")
 
-# Main application
-def main():
-    """Streamlit application entry point."""
-    
-    # Check authentication first
-    if not check_authentication():
-        return
-
-    st.title("🍽️ Restaurant Ingredient Tracker")
+def show_dashboard_page():
+    """Display the main dashboard page with data upload and processing."""
+    st.title("🏠 Dashboard")
     st.markdown("Upload your CSV files to analyze ingredient usage, waste, and costs.")
     
     # Initialize session state
@@ -624,6 +715,29 @@ def main():
         st.session_state.processed_data = None
     if "show_sample_data" not in st.session_state:
         st.session_state.show_sample_data = False
+    
+    # Quick stats at the top if data exists
+    if st.session_state.processed_data is not None and not st.session_state.processed_data.empty:
+        df = st.session_state.processed_data
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_cost = df['Total Cost'].sum()
+            st.metric("Total Cost", f"${total_cost:,.2f}")
+        
+        with col2:
+            waste_cost = df['Waste Cost'].sum()
+            st.metric("Waste Cost", f"${waste_cost:,.2f}")
+        
+        with col3:
+            shrinkage_cost = df['Shrinkage Cost'].sum()
+            st.metric("Shrinkage Cost", f"${shrinkage_cost:,.2f}")
+        
+        with col4:
+            high_shrinkage = len(df[df['Shrinkage Cost'] > 10])
+            st.metric("High Shrinkage Items", high_shrinkage)
+        
+        st.markdown("---")
     
     # Add sample data option
     with st.expander("🎯 Try with Sample Data"):
@@ -642,12 +756,12 @@ def main():
                     if not processed_df.empty:
                         st.session_state.processed_data = processed_df
                         st.session_state.show_sample_data = True
-                        st.success("✅ Sample data loaded successfully!")
+                        st.success("Sample data loaded successfully!")
                         st.rerun()
                     else:
-                        st.error("❌ Failed to process sample data.")
+                        st.error("Failed to process sample data.")
                 except Exception as e:
-                    st.error(f"❌ Error loading sample data: {str(e)}")
+                    st.error(f"Error loading sample data: {str(e)}")
                     
         with col2:
             if st.button("🗑️ Clear Sample Data"):
@@ -657,7 +771,7 @@ def main():
                 st.rerun()
     
     if st.session_state.show_sample_data:
-        st.info("📊 Currently showing results from sample data. Upload your own files to analyze your restaurant's data.")
+        st.info("Currently showing results from sample data. Upload your own files to analyze your restaurant's data.")
 
     ingredient_df, stock_df, usage_df, waste_df = handle_file_upload()
 
@@ -666,15 +780,109 @@ def main():
         processed_df = generate_report(ingredient_df, stock_df, usage_df, waste_df)
         if processed_df is not None:
             st.session_state.processed_data = processed_df
-            st.success("✅ Report generated successfully!")
+            st.success("Report generated successfully!")
             st.rerun()
         else:
-            st.error("❌ Failed to process data. Please check your CSV files.")
+            st.error("Failed to process data. Please check your CSV files.")
 
     if st.session_state.processed_data is not None and not st.session_state.processed_data.empty:
         display_results(st.session_state.processed_data)
-        render_export_buttons(st.session_state.processed_data)
 
+def show_analytics_page():
+    """Display detailed analytics and insights."""
+    st.title("📊 Analytics")
+    
+    if st.session_state.get('processed_data') is None or st.session_state.processed_data.empty:
+        st.warning("No data available. Please go to the Dashboard to upload data first.")
+        if st.button("🏠 Go to Dashboard"):
+            st.session_state.current_page = "dashboard"
+            st.rerun()
+        return
+    
+    df = st.session_state.processed_data
+    st.markdown("Detailed analysis of your ingredient data.")
+    
+    # Advanced analytics
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Top 10 Most Expensive Items")
+        top_cost = df.nlargest(10, 'Total Cost')[['Ingredient', 'Total Cost']]
+        st.dataframe(top_cost, use_container_width=True)
+    
+    with col2:
+        st.subheader("Top 10 Highest Waste")
+        top_waste = df.nlargest(10, 'Waste Cost')[['Ingredient', 'Waste Cost']]
+        st.dataframe(top_waste, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Filtering and sorting options
+    st.subheader("Filter and Sort Data")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        sort_by = st.selectbox("Sort by:", 
+            options=['Total Cost', 'Waste Cost', 'Shrinkage Cost', 'Used Cost'],
+            index=0)
+    
+    with col2:
+        ascending = st.checkbox("Ascending order", value=False)
+    
+    # Apply sorting
+    sorted_df = df.sort_values(sort_by, ascending=ascending)
+    display_results(sorted_df)
+
+def show_reports_page():
+    """Display export and reporting options."""
+    st.title("📤 Reports & Export")
+    
+    if st.session_state.get('processed_data') is None or st.session_state.processed_data.empty:
+        st.warning("No data available. Please go to the Dashboard to upload data first.")
+        if st.button("🏠 Go to Dashboard"):
+            st.session_state.current_page = "dashboard"
+            st.rerun()
+        return
+    
+    df = st.session_state.processed_data
+    
+    # Report summary
+    st.subheader("Report Summary")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Total Items", len(df))
+        st.metric("Items with High Shrinkage", len(df[df['Shrinkage Cost'] > 10]))
+    
+    with col2:
+        st.metric("Total Investment", f"${df['Total Cost'].sum():,.2f}")
+        st.metric("Total Waste", f"${df['Waste Cost'].sum():,.2f}")
+    
+    with col3:
+        waste_percentage = (df['Waste Cost'].sum() / df['Total Cost'].sum()) * 100
+        shrinkage_percentage = (df['Shrinkage Cost'].sum() / df['Total Cost'].sum()) * 100
+        st.metric("Waste %", f"{waste_percentage:.1f}%")
+        st.metric("Shrinkage %", f"{shrinkage_percentage:.1f}%")
+    
+    st.markdown("---")
+    render_export_buttons(df)
+
+def show_settings_page():
+    """Display settings and help information."""
+    st.title("⚙️ Settings & Help")
+    
+    # User information
+    st.subheader("User Information")
+    username = st.session_state.get('demo_username', 'Unknown User')
+    if is_replit_environment():
+        user_info = get_replit_user_info()
+        username = user_info.get('name', 'Replit User')
+        st.info(f"Authenticated via Replit as: {username}")
+    else:
+        st.info(f"Demo user: {username}")
+    
+    st.markdown("---")
+    
     # Instructions
     with st.expander("ℹ️ How to Use This Tool"):
         st.markdown("""
@@ -696,7 +904,7 @@ def main():
         - Columns: `Ingredient`, `Wasted Qty`
         - Example: Tomatoes, 5
         
-        **Step 2:** Upload all four CSV files using the file uploaders above.
+        **Step 2:** Upload all four CSV files using the file uploaders on the Dashboard.
         
         **Step 3:** Click "Run Report" to process your data.
         
@@ -709,6 +917,41 @@ def main():
         - **Shrinkage Cost** = (Stocked × Unit Cost) - (Expected Use × Unit Cost)
         - **Total Cost** = Used Cost + Waste Cost + Shrinkage Cost
         """)
+    
+    # Clear data option
+    st.markdown("---")
+    st.subheader("Data Management")
+    if st.button("🗑️ Clear All Data", type="secondary"):
+        st.session_state.processed_data = None
+        st.session_state.show_sample_data = False
+        st.success("All data cleared!")
+        st.rerun()
+
+# Main application
+def main():
+    """Streamlit application entry point."""
+    
+    # Check authentication first
+    if not check_authentication():
+        return
+    
+    # Initialize session state for navigation
+    if "current_page" not in st.session_state:
+        st.session_state.current_page = "dashboard"
+    
+    # Route to appropriate page
+    if st.session_state.current_page == "dashboard":
+        show_dashboard_page()
+    elif st.session_state.current_page == "analytics":
+        show_analytics_page()
+    elif st.session_state.current_page == "reports":
+        show_reports_page()
+    elif st.session_state.current_page == "settings":
+        show_settings_page()
+    else:
+        # Default to dashboard
+        st.session_state.current_page = "dashboard"
+        show_dashboard_page()
 
 if __name__ == "__main__":
     main()
