@@ -1,4 +1,4 @@
-# 🍽️ Restaurant Ingredient Tracker
+# 🍽️ Paddys Restaurant Food Inventory Tracker
 
 A comprehensive Streamlit-based web application designed to help restaurants analyze ingredient usage, waste, and costs. Track your restaurant's inventory efficiency, reduce waste costs, and optimize ingredient purchasing with powerful analytics and reporting capabilities.
 
