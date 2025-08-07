@@ -31,11 +31,20 @@ st.set_page_config(
 # Replit Auth Configuration
 def get_replit_user_info():
     """Get user information from Replit environment variables."""
+    repl_owner = os.getenv('REPL_OWNER')
+    replit_user = os.getenv('REPLIT_USER')
+    repl_id = os.getenv('REPL_ID')
+    
+    # Use REPLIT_USER if available, fallback to REPL_OWNER
+    username = replit_user or repl_owner
+    
     user_info = {
-        'id': os.getenv('REPL_OWNER'),
-        'name': os.getenv('REPL_OWNER'),
-        'authenticated': os.getenv('REPL_OWNER') is not None,
-        'repl_id': os.getenv('REPL_ID')
+        'id': repl_owner,
+        'name': username,
+        'authenticated': username is not None and repl_id is not None,
+        'repl_id': repl_id,
+        'repl_owner': repl_owner,
+        'replit_user': replit_user
     }
     return user_info
 
@@ -59,16 +68,18 @@ def show_replit_auth_info():
     user_info = get_replit_user_info()
     
     if user_info['authenticated']:
-        st.success(f"🔐 Authenticated via Replit as: **{user_info['name']}**")
-        with st.sidebar:
-            st.markdown("### 🔐 Replit Auth")
-            st.markdown(f"**User:** {user_info['name']}")
-            st.markdown(f"**Repl ID:** {user_info['repl_id']}")
-            if st.button("ℹ️ About Replit Auth"):
-                st.info("You are authenticated through Replit's built-in authentication system. No additional login required!")
+        st.success(f"Authenticated via Replit as: **{user_info['name']}**")
         return True
     else:
-        st.error("🔐 Replit authentication required. Please ensure you're logged into Replit.")
+        st.error("Replit authentication required. Please ensure you're logged into Replit.")
+        # Debug information for troubleshooting
+        with st.expander("Debug Info"):
+            st.json({
+                'REPL_ID': user_info['repl_id'],
+                'REPL_OWNER': user_info['repl_owner'],
+                'REPLIT_USER': user_info['replit_user'],
+                'authenticated': user_info['authenticated']
+            })
         return False
 
 def show_demo_login():
