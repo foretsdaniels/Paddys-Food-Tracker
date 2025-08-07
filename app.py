@@ -396,14 +396,14 @@ def display_results(df: pd.DataFrame) -> None:
     # Add filtering options
     col1, col2 = st.columns(2)
     with col1:
-        show_only_issues = st.checkbox("Show only items with waste or shrinkage > $1", value=False)
+        show_only_issues = st.checkbox("Show only items with shrinkage > $10", value=False)
     with col2:
-        sort_by = st.selectbox("Sort by", ["Ingredient", "Total Cost", "Waste Cost", "Shrinkage Cost"], index=1)
+        sort_by = st.selectbox("Sort by", ["Ingredient", "Total Cost", "Waste Cost", "Shrinkage Cost"], index=3)
     
     # Apply filters and sorting
     filtered_df = df.copy()
     if show_only_issues:
-        filtered_df = filtered_df[(filtered_df['Waste Cost'] > 1) | (filtered_df['Shrinkage Cost'] > 1)]
+        filtered_df = filtered_df[filtered_df['Shrinkage Cost'] > 10]
     
     # Sort the dataframe
     ascending = sort_by == "Ingredient"  # Sort ingredient names ascending, costs descending
