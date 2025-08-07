@@ -3,6 +3,8 @@ import pandas as pd
 import io
 from fpdf import FPDF
 from typing import Optional, Tuple
+import logging
+from datetime import datetime
 
 
 MONEY_COLUMNS = [
@@ -29,13 +31,36 @@ def validate_csv_structure(df: pd.DataFrame, required_columns: list, file_type: 
         st.error(f"{file_type} is missing required columns: {', '.join(missing_columns)}")
         return False
 
+    # Check for empty dataframe
+    if df.empty:
+        st.error(f"{file_type} is empty. Please provide a CSV file with data.")
+        return False
+
+    # Check for duplicate ingredients
+    if 'Ingredient' in df.columns:
+        duplicates = df[df['Ingredient'].duplicated()]
+        if not duplicates.empty:
+            st.error(f"{file_type} contains duplicate ingredients: {', '.join(duplicates['Ingredient'].tolist())}")
+            return False
+
     # Check that expected numeric columns can be parsed as numbers
     numeric_columns = [col for col in required_columns if col.lower() != 'ingredient']
     for col in numeric_columns:
-        converted = pd.to_numeric(df[col], errors='coerce')
-        if converted.isna().any():
-            st.error(f"{file_type} has non-numeric values in column '{col}'")
+        # First check for negative values in cost and quantity columns
+        if df[col].dtype in ['object', 'string']:
+            converted = pd.to_numeric(df[col], errors='coerce')
+        else:
+            converted = df[col]
+            
+        if pd.isna(converted).any():
+            invalid_rows = df[pd.isna(converted)]
+            st.error(f"{file_type} has non-numeric values in column '{col}' at rows: {invalid_rows.index.tolist()}")
             return False
+            
+        # Check for negative values (which don't make sense for costs/quantities)
+        if (converted < 0).any():
+            negative_rows = df[converted < 0]
+            st.warning(f"{file_type} has negative values in column '{col}' at rows: {negative_rows.index.tolist()}")
 
     # Warn about any unexpected extra columns (potential typos)
     extra_columns = [col for col in df.columns if col not in required_columns]
@@ -99,29 +124,41 @@ def create_pdf_report(df: pd.DataFrame) -> bytes:
     pdf.add_page()
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "Restaurant Ingredient Tracking Report", ln=True, align="C")
+    pdf.set_font("Arial", size=10)
+    pdf.cell(0, 8, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
     pdf.ln(10)
     
-    # Table headers
-    pdf.set_font("Arial", "B", 8)
-    col_width = 25
+    # Table headers - adjust column widths for better fit
+    pdf.set_font("Arial", "B", 7)
+    col_widths = [30, 18, 15, 15, 18, 18, 20, 20, 25]  # Custom widths for each column
     headers = ['Ingredient', 'Unit Cost', 'Used', 'Wasted', 'Stocked', 'Shrinkage', 'Used Cost', 'Waste Cost', 'Shrinkage Cost']
     
-    for header in headers:
-        pdf.cell(col_width, 8, header, border=1, align="C")
+    for i, header in enumerate(headers):
+        pdf.cell(col_widths[i], 8, header, border=1, align="C")
     pdf.ln()
     
     # Table data
-    pdf.set_font("Arial", size=7)
+    pdf.set_font("Arial", size=6)
     for _, row in df.iterrows():
-        pdf.cell(col_width, 6, str(row['Ingredient'])[:15], border=1)
-        pdf.cell(col_width, 6, f"${row['Unit Cost']:.2f}", border=1, align="R")
-        pdf.cell(col_width, 6, f"{row['Used']:.2f}", border=1, align="R")
-        pdf.cell(col_width, 6, f"{row['Wasted']:.2f}", border=1, align="R")
-        pdf.cell(col_width, 6, f"{row['Stocked']:.2f}", border=1, align="R")
-        pdf.cell(col_width, 6, f"{row['Shrinkage']:.2f}", border=1, align="R")
-        pdf.cell(col_width, 6, f"${row['Used Cost']:.2f}", border=1, align="R")
-        pdf.cell(col_width, 6, f"${row['Waste Cost']:.2f}", border=1, align="R")
-        pdf.cell(col_width, 6, f"${row['Shrinkage Cost']:.2f}", border=1, align="R")
+        # Check if we need a new page
+        if pdf.get_y() > 250:
+            pdf.add_page()
+            # Re-add headers on new page
+            pdf.set_font("Arial", "B", 7)
+            for i, header in enumerate(headers):
+                pdf.cell(col_widths[i], 8, header, border=1, align="C")
+            pdf.ln()
+            pdf.set_font("Arial", size=6)
+            
+        pdf.cell(col_widths[0], 6, str(row['Ingredient'])[:20], border=1)
+        pdf.cell(col_widths[1], 6, f"${row['Unit Cost']:.2f}", border=1, align="R")
+        pdf.cell(col_widths[2], 6, f"{row['Used']:.1f}", border=1, align="R")
+        pdf.cell(col_widths[3], 6, f"{row['Wasted']:.1f}", border=1, align="R")
+        pdf.cell(col_widths[4], 6, f"{row['Stocked']:.1f}", border=1, align="R")
+        pdf.cell(col_widths[5], 6, f"{row['Shrinkage']:.1f}", border=1, align="R")
+        pdf.cell(col_widths[6], 6, f"${row['Used Cost']:.2f}", border=1, align="R")
+        pdf.cell(col_widths[7], 6, f"${row['Waste Cost']:.2f}", border=1, align="R")
+        pdf.cell(col_widths[8], 6, f"${row['Shrinkage Cost']:.2f}", border=1, align="R")
         pdf.ln()
     
     # Summary totals
@@ -140,13 +177,16 @@ def create_pdf_report(df: pd.DataFrame) -> bytes:
     pdf.cell(0, 6, f"Total Shrinkage Cost: ${total_shrinkage_cost:.2f}", ln=True)
     pdf.cell(0, 6, f"Grand Total Cost: ${grand_total:.2f}", ln=True)
     
-    return bytes(pdf.output(dest='S'), 'latin1')
+    pdf_output = pdf.output(dest='S')
+    if isinstance(pdf_output, str):
+        return pdf_output.encode('latin1')
+    return bytes(pdf_output)
 
 def create_excel_report(df: pd.DataFrame) -> bytes:
     """Generate an Excel report from the dataframe."""
     output = io.BytesIO()
     
-    with pd.ExcelWriter(output, engine='xlsxwriter', options={'remove_timezone': True}) as writer:
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         # Write the main data
         df.to_excel(writer, sheet_name='Ingredient Report', index=False)
         
@@ -181,21 +221,34 @@ def create_excel_report(df: pd.DataFrame) -> bytes:
                 col_idx = df.columns.get_loc(col_name)
                 worksheet.set_column(col_idx, col_idx, 10, number_format)
         
-        # Add summary totals
+        # Add summary totals with additional insights
         start_row = len(df) + 3
-        worksheet.write(start_row, 0, 'Summary Totals:', workbook.add_format({'bold': True}))
+        bold_format = workbook.add_format({'bold': True})
+        
+        worksheet.write(start_row, 0, 'Summary Totals:', bold_format)
+        
+        total_used = df['Used Cost'].sum()
+        total_waste = df['Waste Cost'].sum()
+        total_shrinkage = df['Shrinkage Cost'].sum()
+        grand_total = df['Total Cost'].sum()
         
         worksheet.write(start_row + 1, 0, 'Total Used Cost:')
-        worksheet.write(start_row + 1, 1, df['Used Cost'].sum(), money_format)
+        worksheet.write(start_row + 1, 1, total_used, money_format)
         
         worksheet.write(start_row + 2, 0, 'Total Waste Cost:')
-        worksheet.write(start_row + 2, 1, df['Waste Cost'].sum(), money_format)
+        worksheet.write(start_row + 2, 1, total_waste, money_format)
+        worksheet.write(start_row + 2, 2, f"{(total_waste/grand_total*100):.1f}% of total" if grand_total > 0 else "")
         
         worksheet.write(start_row + 3, 0, 'Total Shrinkage Cost:')
-        worksheet.write(start_row + 3, 1, df['Shrinkage Cost'].sum(), money_format)
+        worksheet.write(start_row + 3, 1, total_shrinkage, money_format)
+        worksheet.write(start_row + 3, 2, f"{(total_shrinkage/grand_total*100):.1f}% of total" if grand_total > 0 else "")
         
         worksheet.write(start_row + 4, 0, 'Grand Total Cost:')
-        worksheet.write(start_row + 4, 1, df['Total Cost'].sum(), money_format)
+        worksheet.write(start_row + 4, 1, grand_total, money_format)
+        
+        # Add generation timestamp
+        worksheet.write(start_row + 6, 0, 'Report Generated:')
+        worksheet.write(start_row + 6, 1, datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     
     output.seek(0)
     return output.getvalue()
@@ -289,6 +342,12 @@ def generate_report(
         st.warning("⚠️ Please upload all four CSV files before running the report.")
         return None
 
+    # Type assertion since we've already checked for None values
+    assert ingredient_df is not None
+    assert stock_df is not None 
+    assert usage_df is not None
+    assert waste_df is not None
+    
     processed_df = process_ingredient_data(ingredient_df, stock_df, usage_df, waste_df)
     return processed_df if not processed_df.empty else None
 
@@ -298,19 +357,56 @@ def display_results(df: pd.DataFrame) -> None:
 
     st.header("📋 Report Results")
 
+    # Calculate key metrics
+    total_used_cost = df['Used Cost'].sum()
+    total_waste_cost = df['Waste Cost'].sum()
+    total_shrinkage_cost = df['Shrinkage Cost'].sum()
+    grand_total_cost = df['Total Cost'].sum()
+    
+    # Calculate percentages for better insights
+    waste_percentage = (total_waste_cost / grand_total_cost * 100) if grand_total_cost > 0 else 0
+    shrinkage_percentage = (total_shrinkage_cost / grand_total_cost * 100) if grand_total_cost > 0 else 0
+
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("Total Used Cost", f"${df['Used Cost'].sum():.2f}")
+        st.metric("Total Used Cost", f"${total_used_cost:.2f}")
     with col2:
-        st.metric("Total Waste Cost", f"${df['Waste Cost'].sum():.2f}")
+        st.metric("Total Waste Cost", f"${total_waste_cost:.2f}", 
+                 delta=f"{waste_percentage:.1f}% of total" if waste_percentage > 0 else None)
     with col3:
-        st.metric("Total Shrinkage Cost", f"${df['Shrinkage Cost'].sum():.2f}")
+        st.metric("Total Shrinkage Cost", f"${total_shrinkage_cost:.2f}",
+                 delta=f"{shrinkage_percentage:.1f}% of total" if shrinkage_percentage > 0 else None)
     with col4:
-        st.metric("Grand Total Cost", f"${df['Total Cost'].sum():.2f}")
+        st.metric("Grand Total Cost", f"${grand_total_cost:.2f}")
+
+    # Add insights section
+    if waste_percentage > 5 or shrinkage_percentage > 5:
+        st.warning("💡 **Insights**: " + 
+                  (f"High waste percentage ({waste_percentage:.1f}%). " if waste_percentage > 5 else "") +
+                  (f"High shrinkage percentage ({shrinkage_percentage:.1f}%). " if shrinkage_percentage > 5 else "") +
+                  "Consider reviewing inventory management processes.")
 
     st.subheader("Detailed Results")
-    display_df = df.copy()
+    
+    # Add filtering options
+    col1, col2 = st.columns(2)
+    with col1:
+        show_only_issues = st.checkbox("Show only items with waste or shrinkage > $1", value=False)
+    with col2:
+        sort_by = st.selectbox("Sort by", ["Ingredient", "Total Cost", "Waste Cost", "Shrinkage Cost"], index=1)
+    
+    # Apply filters and sorting
+    filtered_df = df.copy()
+    if show_only_issues:
+        filtered_df = filtered_df[(filtered_df['Waste Cost'] > 1) | (filtered_df['Shrinkage Cost'] > 1)]
+    
+    # Sort the dataframe
+    ascending = sort_by != "Total Cost"  # Sort costs in descending order by default
+    filtered_df = filtered_df.sort_values(sort_by, ascending=ascending)
+    
+    # Format the display dataframe
+    display_df = filtered_df.copy()
     for col in MONEY_COLUMNS:
         if col in display_df.columns:
             display_df[col] = display_df[col].apply(lambda x: f"${x:.2f}")
@@ -319,7 +415,10 @@ def display_results(df: pd.DataFrame) -> None:
         if col in display_df.columns:
             display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}")
 
-    st.dataframe(display_df, use_container_width=True)
+    st.dataframe(display_df, use_container_width=True, height=400)
+    
+    # Show record count
+    st.caption(f"Showing {len(filtered_df)} of {len(df)} ingredients")
 
 
 def render_export_buttons(df: pd.DataFrame) -> None:
@@ -360,9 +459,46 @@ def main():
 
     st.title("🍽️ Restaurant Ingredient Tracker")
     st.markdown("Upload your CSV files to analyze ingredient usage, waste, and costs.")
-
+    
+    # Initialize session state
     if "processed_data" not in st.session_state:
         st.session_state.processed_data = None
+    if "show_sample_data" not in st.session_state:
+        st.session_state.show_sample_data = False
+    
+    # Add sample data option
+    with st.expander("🎯 Try with Sample Data"):
+        st.markdown("Don't have your own data yet? Try the app with our sample restaurant data.")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("📋 Load Sample Data", type="secondary"):
+                try:
+                    ingredient_df = pd.read_csv("sample_ingredient_info.csv")
+                    stock_df = pd.read_csv("sample_input_stock.csv") 
+                    usage_df = pd.read_csv("sample_usage.csv")
+                    waste_df = pd.read_csv("sample_waste.csv")
+                    
+                    processed_df = process_ingredient_data(ingredient_df, stock_df, usage_df, waste_df)
+                    if not processed_df.empty:
+                        st.session_state.processed_data = processed_df
+                        st.session_state.show_sample_data = True
+                        st.success("✅ Sample data loaded successfully!")
+                        st.rerun()
+                    else:
+                        st.error("❌ Failed to process sample data.")
+                except Exception as e:
+                    st.error(f"❌ Error loading sample data: {str(e)}")
+                    
+        with col2:
+            if st.button("🗑️ Clear Sample Data"):
+                st.session_state.processed_data = None
+                st.session_state.show_sample_data = False
+                st.success("Sample data cleared!")
+                st.rerun()
+    
+    if st.session_state.show_sample_data:
+        st.info("📊 Currently showing results from sample data. Upload your own files to analyze your restaurant's data.")
 
     ingredient_df, stock_df, usage_df, waste_df = handle_file_upload()
 
