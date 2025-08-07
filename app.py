@@ -395,8 +395,7 @@ def display_results(df: pd.DataFrame) -> None:
                   "Consider reviewing inventory management processes.")
     
     if not high_shrinkage_items.empty:
-        st.error(f"⚠️ **Alert**: {len(high_shrinkage_items)} ingredients have shrinkage costs over $10. "
-                f"Total shrinkage value: ${high_shrinkage_items['Shrinkage Cost'].sum():.2f}")
+        st.error(f"⚠️ **Alert**: {len(high_shrinkage_items)} Items have Shrinkage totaling ${high_shrinkage_items['Shrinkage Cost'].sum():.2f}")
     
     if not missing_stock_items.empty:
         st.warning(f"📦 **Missing Stock**: {len(missing_stock_items)} ingredients show zero stocked quantities but have usage or waste. "
