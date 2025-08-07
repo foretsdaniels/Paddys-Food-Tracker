@@ -5,6 +5,8 @@ from fpdf import FPDF
 from typing import Optional, Tuple
 import logging
 from datetime import datetime
+import hashlib
+import hmac
 
 
 MONEY_COLUMNS = [
@@ -23,6 +25,72 @@ st.set_page_config(
     page_icon="🍽️",
     layout="wide"
 )
+
+# Authentication configuration
+USERS = {
+    "admin": "admin123",
+    "manager": "manager456",
+    "staff": "staff789"
+}
+
+def hash_password(password: str) -> str:
+    """Hash password using SHA256."""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(username: str, password: str) -> bool:
+    """Verify user credentials."""
+    if username in USERS:
+        return hash_password(password) == hash_password(USERS[username])
+    return False
+
+def show_login_form():
+    """Display login form."""
+    st.title("🔐 Restaurant Ingredient Tracker - Login")
+    st.markdown("Please log in to access the ingredient tracking system.")
+    
+    with st.form("login_form"):
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.markdown("### Login Credentials")
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            login_button = st.form_submit_button("Login", type="primary")
+        
+        with col2:
+            st.markdown("### Demo Accounts")
+            st.info("""
+            **Available Demo Accounts:**
+            - Username: `admin` Password: `admin123`
+            - Username: `manager` Password: `manager456`  
+            - Username: `staff` Password: `staff789`
+            """)
+    
+    if login_button:
+        if verify_password(username, password):
+            st.session_state.authenticated = True
+            st.session_state.username = username
+            st.success(f"Welcome, {username}!")
+            st.rerun()
+        else:
+            st.error("Invalid username or password. Please try again.")
+
+def show_logout_option():
+    """Display logout option in sidebar."""
+    with st.sidebar:
+        st.markdown(f"**Logged in as:** {st.session_state.get('username', 'Unknown')}")
+        if st.button("🚪 Logout"):
+            st.session_state.authenticated = False
+            st.session_state.username = None
+            st.session_state.processed_data = None
+            st.session_state.show_sample_data = False
+            st.success("Logged out successfully!")
+            st.rerun()
+
+def check_authentication():
+    """Check if user is authenticated."""
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    return st.session_state.authenticated
 
 def validate_csv_structure(df: pd.DataFrame, required_columns: list, file_type: str) -> bool:
     """Validate that the CSV has the required columns and numeric data."""
@@ -509,6 +577,14 @@ def render_export_buttons(df: pd.DataFrame) -> None:
 # Main application
 def main():
     """Streamlit application entry point."""
+    
+    # Check authentication first
+    if not check_authentication():
+        show_login_form()
+        return
+    
+    # Show logout option
+    show_logout_option()
 
     st.title("🍽️ Restaurant Ingredient Tracker")
     st.markdown("Upload your CSV files to analyze ingredient usage, waste, and costs.")

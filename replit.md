@@ -20,6 +20,9 @@ The Restaurant Ingredient Tracker is a Streamlit-based web application designed 
 - Implemented alert system for high shrinkage items and missing stock notifications
 - Added color-coded rows (red for high shrinkage, orange for missing stock)
 - Enhanced UX with warning and info notice boxes for immediate issue identification
+- Implemented secure authentication system with username/password login
+- Added demo accounts for testing and user session management
+- Included logout functionality and session data cleanup
 
 # User Preferences
 
