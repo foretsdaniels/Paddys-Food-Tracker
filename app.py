@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 import io
 from fpdf import FPDF
-import xlsxwriter
-from typing import Optional, Tuple
 
 # Page configuration
 st.set_page_config(

@@ -22,7 +22,7 @@ A Streamlit-based web application that helps restaurants analyze their ingredien
 - Required packages (automatically installed):
   - streamlit
   - pandas
-  - fpdf2
+  - fpdf
   - xlsxwriter
   - openpyxl
 
