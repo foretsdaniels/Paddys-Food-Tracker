@@ -32,7 +32,21 @@ def process_ingredient_data(ingredient_info: pd.DataFrame, input_stock: pd.DataF
         usage_indexed = usage.set_index('Ingredient')
         waste_indexed = waste.set_index('Ingredient')
         stock_indexed = input_stock.set_index('Ingredient')
-        
+
+        # Identify ingredients present in stock/usage/waste but missing from
+        # the ingredient info. Warn the user and include them with zero cost
+        # so they appear in the final report.
+        all_indices = usage_indexed.index.union(waste_indexed.index).union(stock_indexed.index)
+        missing_ingredients = all_indices.difference(df.index)
+        if not missing_ingredients.empty:
+            st.warning(
+                "The following ingredients were found in stock, usage, or waste files but "
+                "are missing from the ingredient info: "
+                + ", ".join(missing_ingredients)
+            )
+            # Add the missing ingredients to the dataframe with zero unit cost
+            df = df.reindex(df.index.union(missing_ingredients), fill_value=0)
+
         # Add quantities to the main dataframe
         df['Used'] = usage_indexed['Used Qty'].reindex(df.index).fillna(0)
         df['Wasted'] = waste_indexed['Wasted Qty'].reindex(df.index).fillna(0)
