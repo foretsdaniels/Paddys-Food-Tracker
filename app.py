@@ -385,11 +385,23 @@ def display_results(df: pd.DataFrame) -> None:
         st.metric("Grand Total Cost", f"${grand_total_cost:.2f}")
 
     # Add insights section
+    high_shrinkage_items = df[df['Shrinkage Cost'] > 10]
+    missing_stock_items = df[df['Stocked'] == 0]
+    
     if waste_percentage > 5 or shrinkage_percentage > 5:
         st.warning("💡 **Insights**: " + 
                   (f"High waste percentage ({waste_percentage:.1f}%). " if waste_percentage > 5 else "") +
                   (f"High shrinkage percentage ({shrinkage_percentage:.1f}%). " if shrinkage_percentage > 5 else "") +
                   "Consider reviewing inventory management processes.")
+    
+    if not high_shrinkage_items.empty:
+        st.error(f"⚠️ **Alert**: {len(high_shrinkage_items)} ingredients have shrinkage costs over $10. "
+                f"Total shrinkage value: ${high_shrinkage_items['Shrinkage Cost'].sum():.2f}")
+    
+    if not missing_stock_items.empty:
+        st.warning(f"📦 **Missing Stock**: {len(missing_stock_items)} ingredients show zero stocked quantities but have usage or waste. "
+                  f"Items: {', '.join(missing_stock_items['Ingredient'].head(5).tolist())}"
+                  f"{' and others...' if len(missing_stock_items) > 5 else ''}")
 
     st.subheader("Detailed Results")
     
@@ -411,6 +423,18 @@ def display_results(df: pd.DataFrame) -> None:
     
     # Format the display dataframe
     display_df = filtered_df.copy()
+    
+    # Add visual indicators for problematic items
+    def highlight_issues(row):
+        styles = [''] * len(row)
+        # Highlight high shrinkage items in red
+        if float(row['Shrinkage Cost'].replace('$', '').replace(',', '')) > 10:
+            styles = ['background-color: #ffebee'] * len(row)  # Light red
+        # Highlight missing stock items in yellow
+        elif float(row['Stocked'].replace(',', '')) == 0 and (float(row['Used'].replace(',', '')) > 0 or float(row['Wasted'].replace(',', '')) > 0):
+            styles = ['background-color: #fff3e0'] * len(row)  # Light orange
+        return styles
+    
     for col in MONEY_COLUMNS:
         if col in display_df.columns:
             display_df[col] = display_df[col].apply(lambda x: f"${x:.2f}")
@@ -419,10 +443,22 @@ def display_results(df: pd.DataFrame) -> None:
         if col in display_df.columns:
             display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}")
 
-    st.dataframe(display_df, use_container_width=True, height=400)
+    # Apply conditional styling and display
+    styled_df = display_df.style.apply(highlight_issues, axis=1)
+    st.dataframe(styled_df, use_container_width=True, height=400)
     
-    # Show record count
+    # Show record count and legend
     st.caption(f"Showing {len(filtered_df)} of {len(df)} ingredients")
+    
+    # Add legend for visual indicators
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown("🔴 **Red highlighting**: Shrinkage > $10")
+    with col2:
+        st.markdown("🟠 **Orange highlighting**: Missing stock but has usage/waste")
+    with col3:
+        if show_only_issues:
+            st.info(f"Filtered to show {len(filtered_df)} items with shrinkage > $10")
 
 
 def render_export_buttons(df: pd.DataFrame) -> None:

@@ -22,9 +22,11 @@ A comprehensive Streamlit-based web application that helps restaurants analyze t
 ### 🎯 Interactive Dashboard
 - **Real-time Metrics**: Summary cards showing total costs with percentage insights
 - **Smart Insights**: Automatic warnings for high waste or shrinkage percentages (>5%)
-- **Advanced Filtering**: Show only problematic items with waste or shrinkage >$1
+- **Alert System**: Immediate notifications for items with shrinkage >$10 and missing stock
+- **Visual Highlighting**: Color-coded rows to identify high shrinkage (red) and missing stock (orange)
+- **Advanced Filtering**: Focus on items with shrinkage >$10 for critical issue tracking
 - **Flexible Sorting**: Sort results by ingredient name, total cost, waste cost, or shrinkage cost
-- **Data Table**: Interactive results display with formatted currency and numbers
+- **Data Table**: Interactive results display with formatted currency, numbers, and visual indicators
 
 ### 📤 Export Capabilities
 - **Enhanced PDF Reports**: 

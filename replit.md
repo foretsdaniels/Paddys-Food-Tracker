@@ -16,6 +16,10 @@ The Restaurant Ingredient Tracker is a Streamlit-based web application designed 
 - Corrected shrinkage calculation to show dollar value of missing/stolen inventory
 - Updated filtering to focus on shrinkage > $10 as most important metric for tracking
 - Modified default sorting to prioritize shrinkage cost analysis
+- Added visual highlighting system for easy identification of problematic items
+- Implemented alert system for high shrinkage items and missing stock notifications
+- Added color-coded rows (red for high shrinkage, orange for missing stock)
+- Enhanced UX with warning and info notice boxes for immediate issue identification
 
 # User Preferences
 
