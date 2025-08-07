@@ -41,6 +41,8 @@ A comprehensive Streamlit-based web application that helps restaurants analyze t
   - Generation timestamps for tracking
 
 ### 🎯 User Experience
+- **Replit Auth Integration**: Automatic authentication when running on Replit platform
+- **Smart Environment Detection**: Seamlessly switches between Replit Auth and demo mode
 - **Sample Data Integration**: Try the app instantly with pre-loaded restaurant data
 - **Comprehensive Help**: Built-in instructions with CSV format examples
 - **Error Handling**: Clear, actionable error messages with specific guidance
