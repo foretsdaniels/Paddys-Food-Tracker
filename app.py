@@ -420,6 +420,9 @@ def display_results(df: pd.DataFrame) -> None:
     ascending = sort_by == "Ingredient"  # Sort ingredient names ascending, costs descending
     filtered_df = filtered_df.sort_values(by=sort_by, ascending=ascending)
     
+    # Reset index to ensure proper alignment with styling
+    filtered_df = filtered_df.reset_index(drop=True)
+    
     # Format the display dataframe
     display_df = filtered_df.copy()
     
@@ -432,21 +435,26 @@ def display_results(df: pd.DataFrame) -> None:
         if col in display_df.columns:
             display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}")
     
-    # Create a simpler highlighting approach using original numeric data for comparison
+    # Create a simpler highlighting approach using filtered numeric data
     def highlight_issues(row):
-        # Use original filtered_df for numeric comparisons
-        original_row = filtered_df.loc[row.name]
-        
-        # Check conditions using original numeric values
-        high_shrinkage = original_row['Shrinkage Cost'] > 10
-        missing_stock = original_row['Stocked'] == 0 and (original_row['Used'] > 0 or original_row['Wasted'] > 0)
-        
-        if high_shrinkage:
-            return ['background-color: #ffebee; color: #000000;'] * len(row)  # Light red with black text
-        elif missing_stock:
-            return ['background-color: #fff3e0; color: #000000;'] * len(row)  # Light orange with black text
-        else:
+        try:
+            # Get the index in the filtered dataframe
+            idx = row.name
+            if idx < len(filtered_df):
+                original_row = filtered_df.iloc[idx]
+                
+                # Check conditions using original numeric values
+                high_shrinkage = original_row['Shrinkage Cost'] > 10
+                missing_stock = original_row['Stocked'] == 0 and (original_row['Used'] > 0 or original_row['Wasted'] > 0)
+                
+                if high_shrinkage:
+                    return ['background-color: #ffebee; color: #000000;'] * len(row)  # Light red with black text
+                elif missing_stock:
+                    return ['background-color: #fff3e0; color: #000000;'] * len(row)  # Light orange with black text
+            
             return ['background-color: white; color: #000000;'] * len(row)  # White background with black text
+        except:
+            return ['background-color: white; color: #000000;'] * len(row)  # Default to white if any error
     
     # Apply styling and display
     styled_df = display_df.style.apply(highlight_issues, axis=1)
