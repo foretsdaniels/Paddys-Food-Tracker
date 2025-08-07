@@ -41,8 +41,6 @@ A comprehensive Streamlit-based web application that helps restaurants analyze t
   - Generation timestamps for tracking
 
 ### 🎯 User Experience
-- **Secure Authentication**: Username/password login system with demo accounts
-- **Session Management**: Secure user sessions with logout functionality
 - **Sample Data Integration**: Try the app instantly with pre-loaded restaurant data
 - **Comprehensive Help**: Built-in instructions with CSV format examples
 - **Error Handling**: Clear, actionable error messages with specific guidance
@@ -72,15 +70,14 @@ A comprehensive Streamlit-based web application that helps restaurants analyze t
 ### Quick Start Options
 
 #### Option 1: Try with Sample Data
-1. **Login**: Use demo credentials (admin/admin123, manager/manager456, or staff/staff789)
+1. Open the application
 2. Expand "🎯 Try with Sample Data" section
 3. Click "📋 Load Sample Data" to see the app in action
 4. Explore the features with pre-loaded restaurant data
 
 #### Option 2: Use Your Own Data
 
-1. **Login**: Use your assigned credentials or demo accounts
-2. **Prepare CSV Files**: Create four CSV files with the following formats:
+1. **Prepare CSV Files**: Create four CSV files with the following formats:
 
    **Ingredient Info CSV** (`ingredient_info.csv`):
    ```csv
@@ -110,38 +107,23 @@ A comprehensive Streamlit-based web application that helps restaurants analyze t
    Onions,3.0
    ```
 
-3. **Upload Files**: Use the file uploaders in the web interface to upload all four CSV files
+2. **Upload Files**: Use the file uploaders in the web interface to upload all four CSV files
 
-4. **Generate Report**: Click "Run Report" to process your data
+3. **Generate Report**: Click "Run Report" to process your data
 
-5. **View Results**: Review the calculated metrics including:
+4. **View Results**: Review the calculated metrics including:
    - Total used cost
    - Total waste cost
    - Total shrinkage cost
    - Grand total cost
 
-6. **Analyze Results**: 
+5. **Analyze Results**: 
    - Review summary metrics with percentage insights
    - Use filtering options to focus on problem areas
    - Sort data by different criteria for analysis
    - Pay attention to automated insights and warnings
 
-7. **Export Reports**: Download professional PDF or Excel reports with detailed formatting
-
-## Authentication
-
-The application includes a secure authentication system:
-
-### Demo Accounts
-- **Admin**: Username `admin`, Password `admin123`
-- **Manager**: Username `manager`, Password `manager456`
-- **Staff**: Username `staff`, Password `staff789`
-
-### Security Features
-- Password hashing using SHA256
-- Session-based authentication
-- Automatic logout functionality
-- Session data cleanup on logout
+6. **Export Reports**: Download professional PDF or Excel reports with detailed formatting
 
 ## Sample Data
 
