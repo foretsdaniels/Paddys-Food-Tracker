@@ -15,7 +15,7 @@ MONEY_COLUMNS = [
     "Total Cost",
 ]
 
-NUMBER_COLUMNS = ["Used", "Wasted", "Stocked", "Shrinkage"]
+NUMBER_COLUMNS = ["Used", "Wasted", "Stocked"]
 
 # Page configuration
 st.set_page_config(
@@ -104,10 +104,13 @@ def process_ingredient_data(ingredient_info: pd.DataFrame, input_stock: pd.DataF
         
         # Calculate derived metrics
         df['Expected Use'] = df['Used'] + df['Wasted']
-        df['Shrinkage'] = df['Stocked'] - df['Expected Use']
         df['Used Cost'] = df['Used'] * df['Unit Cost']
         df['Waste Cost'] = df['Wasted'] * df['Unit Cost']
-        df['Shrinkage Cost'] = df['Shrinkage'] * df['Unit Cost']
+        df['Expected Use Cost'] = df['Expected Use'] * df['Unit Cost']
+        df['Stocked Cost'] = df['Stocked'] * df['Unit Cost']
+        # Shrinkage Cost is the dollar value of missing/stolen inventory
+        # Formula: Stocked Cost - Expected Use Cost = Shrinkage Cost
+        df['Shrinkage Cost'] = df['Stocked Cost'] - df['Expected Use Cost']
         df['Total Cost'] = df['Used Cost'] + df['Waste Cost'] + df['Shrinkage Cost']
         
         # Reset index to make Ingredient a column again
@@ -131,8 +134,8 @@ def create_pdf_report(df: pd.DataFrame) -> bytes:
     
     # Table headers - adjust column widths for better fit
     pdf.set_font("Arial", "B", 7)
-    col_widths = [30, 18, 15, 15, 18, 18, 20, 20, 25]  # Custom widths for each column
-    headers = ['Ingredient', 'Unit Cost', 'Used', 'Wasted', 'Stocked', 'Shrinkage', 'Used Cost', 'Waste Cost', 'Shrinkage Cost']
+    col_widths = [30, 18, 15, 15, 18, 25, 20, 20, 25]  # Custom widths for each column
+    headers = ['Ingredient', 'Unit Cost', 'Used', 'Wasted', 'Stocked', 'Shrinkage Cost', 'Used Cost', 'Waste Cost', 'Total Cost']
     
     for i, header in enumerate(headers):
         pdf.cell(col_widths[i], 8, header, border=1, align="C")
@@ -156,10 +159,10 @@ def create_pdf_report(df: pd.DataFrame) -> bytes:
         pdf.cell(col_widths[2], 6, f"{row['Used']:.1f}", border=1, align="R")
         pdf.cell(col_widths[3], 6, f"{row['Wasted']:.1f}", border=1, align="R")
         pdf.cell(col_widths[4], 6, f"{row['Stocked']:.1f}", border=1, align="R")
-        pdf.cell(col_widths[5], 6, f"{row['Shrinkage']:.1f}", border=1, align="R")
+        pdf.cell(col_widths[5], 6, f"${row['Shrinkage Cost']:.2f}", border=1, align="R")
         pdf.cell(col_widths[6], 6, f"${row['Used Cost']:.2f}", border=1, align="R")
         pdf.cell(col_widths[7], 6, f"${row['Waste Cost']:.2f}", border=1, align="R")
-        pdf.cell(col_widths[8], 6, f"${row['Shrinkage Cost']:.2f}", border=1, align="R")
+        pdf.cell(col_widths[8], 6, f"${row['Total Cost']:.2f}", border=1, align="R")
         pdf.ln()
     
     # Summary totals
@@ -545,10 +548,11 @@ def main():
         **Step 4:** View the results and export to Excel or PDF as needed.
         
         **Calculations:**
-        - **Shrinkage** = Stocked - (Used + Wasted)
+        - **Expected Use** = Used + Wasted
         - **Used Cost** = Used Qty × Unit Cost
-        - **Waste Cost** = Wasted Qty × Unit Cost
-        - **Shrinkage Cost** = Shrinkage × Unit Cost
+        - **Waste Cost** = Wasted Qty × Unit Cost  
+        - **Shrinkage Cost** = (Stocked × Unit Cost) - (Expected Use × Unit Cost)
+        - **Total Cost** = Used Cost + Waste Cost + Shrinkage Cost
         """)
 
 if __name__ == "__main__":

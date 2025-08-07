@@ -137,10 +137,11 @@ These files demonstrate typical restaurant scenarios including items with high w
 
 ### Core Calculations
 - **Expected Use** = Used Quantity + Wasted Quantity
-- **Shrinkage** = Stocked Quantity - Expected Use
 - **Used Cost** = Used Quantity × Unit Cost
 - **Waste Cost** = Wasted Quantity × Unit Cost
-- **Shrinkage Cost** = Shrinkage × Unit Cost
+- **Expected Use Cost** = Expected Use × Unit Cost
+- **Stocked Cost** = Stocked Quantity × Unit Cost
+- **Shrinkage Cost** = Stocked Cost - Expected Use Cost (dollar value of missing/stolen inventory)
 - **Total Cost** = Used Cost + Waste Cost + Shrinkage Cost
 
 ### Advanced Analytics
