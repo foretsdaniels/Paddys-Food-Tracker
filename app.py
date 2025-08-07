@@ -13,11 +13,25 @@ st.set_page_config(
 )
 
 def validate_csv_structure(df: pd.DataFrame, required_columns: list, file_type: str) -> bool:
-    """Validate that the CSV has the required columns."""
+    """Validate that the CSV has the required columns and numeric data."""
     missing_columns = [col for col in required_columns if col not in df.columns]
     if missing_columns:
         st.error(f"{file_type} is missing required columns: {', '.join(missing_columns)}")
         return False
+
+    # Check that expected numeric columns can be parsed as numbers
+    numeric_columns = [col for col in required_columns if col.lower() != 'ingredient']
+    for col in numeric_columns:
+        converted = pd.to_numeric(df[col], errors='coerce')
+        if converted.isna().any():
+            st.error(f"{file_type} has non-numeric values in column '{col}'")
+            return False
+
+    # Warn about any unexpected extra columns (potential typos)
+    extra_columns = [col for col in df.columns if col not in required_columns]
+    if extra_columns:
+        st.warning(f"{file_type} has unexpected columns: {', '.join(extra_columns)}")
+
     return True
 
 def process_ingredient_data(ingredient_info: pd.DataFrame, input_stock: pd.DataFrame, 
