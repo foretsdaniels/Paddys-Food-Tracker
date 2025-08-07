@@ -5,6 +5,10 @@ from fpdf import FPDF
 import xlsxwriter
 from typing import Optional, Tuple
 
+# Columns containing monetary and numeric values for formatting
+MONEY_COLUMNS = ['Unit Cost', 'Used Cost', 'Waste Cost', 'Shrinkage Cost', 'Total Cost']
+NUMBER_COLUMNS = ['Used', 'Wasted', 'Stocked', 'Shrinkage']
+
 # Page configuration
 st.set_page_config(
     page_title="Restaurant Ingredient Tracker",
@@ -131,17 +135,14 @@ def create_excel_report(df: pd.DataFrame) -> bytes:
         # Apply header formatting
         for col_num, value in enumerate(df.columns.values):
             worksheet.write(0, col_num, value, header_format)
-        
+
         # Apply number formatting to appropriate columns
-        money_columns = ['Unit Cost', 'Used Cost', 'Waste Cost', 'Shrinkage Cost', 'Total Cost']
-        number_columns = ['Used', 'Wasted', 'Stocked', 'Shrinkage']
-        
-        for col_name in money_columns:
+        for col_name in MONEY_COLUMNS:
             if col_name in df.columns:
                 col_idx = df.columns.get_loc(col_name)
                 worksheet.set_column(col_idx, col_idx, 12, money_format)
-        
-        for col_name in number_columns:
+
+        for col_name in NUMBER_COLUMNS:
             if col_name in df.columns:
                 col_idx = df.columns.get_loc(col_name)
                 worksheet.set_column(col_idx, col_idx, 10, number_format)
@@ -270,16 +271,14 @@ def main():
         
         # Data table
         st.subheader("Detailed Results")
-        
+
         # Format numeric columns for display
         display_df = df.copy()
-        money_columns = ['Unit Cost', 'Used Cost', 'Waste Cost', 'Shrinkage Cost', 'Total Cost']
-        for col in money_columns:
+        for col in MONEY_COLUMNS:
             if col in display_df.columns:
                 display_df[col] = display_df[col].apply(lambda x: f"${x:.2f}")
-        
-        number_columns = ['Used', 'Wasted', 'Stocked', 'Shrinkage']
-        for col in number_columns:
+
+        for col in NUMBER_COLUMNS:
             if col in display_df.columns:
                 display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}")
         
