@@ -165,157 +165,188 @@ def create_excel_report(df: pd.DataFrame) -> bytes:
     output.seek(0)
     return output.getvalue()
 
-# Main application
-def main():
-    st.title("🍽️ Restaurant Ingredient Tracker")
-    st.markdown("Upload your CSV files to analyze ingredient usage, waste, and costs.")
-    
-    # Initialize session state
-    if 'processed_data' not in st.session_state:
-        st.session_state.processed_data = None
-    
-    # File upload section
+
+def handle_file_upload() -> Tuple[
+    Optional[pd.DataFrame],
+    Optional[pd.DataFrame],
+    Optional[pd.DataFrame],
+    Optional[pd.DataFrame],
+]:
+    """Display file uploaders and return the uploaded dataframes.
+
+    Returns a tuple containing dataframes for ingredient information, stock,
+    usage and waste. Elements will be ``None`` if the file is missing or fails
+    validation.
+    """
+
     st.header("📁 Upload CSV Files")
-    
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.subheader("Ingredient Information")
         ingredient_file = st.file_uploader(
-            "Upload ingredient info CSV (Ingredient, Unit Cost)", 
-            type=['csv'], 
-            key="ingredient"
+            "Upload ingredient info CSV (Ingredient, Unit Cost)",
+            type=["csv"],
+            key="ingredient",
         )
         st.caption("Required columns: Ingredient, Unit Cost")
-        
+
         st.subheader("Usage Data")
         usage_file = st.file_uploader(
-            "Upload usage CSV (Ingredient, Used Qty)", 
-            type=['csv'], 
-            key="usage"
+            "Upload usage CSV (Ingredient, Used Qty)",
+            type=["csv"],
+            key="usage",
         )
         st.caption("Required columns: Ingredient, Used Qty")
-    
+
     with col2:
         st.subheader("Stock/Inventory")
         stock_file = st.file_uploader(
-            "Upload stock CSV (Ingredient, Received Qty)", 
-            type=['csv'], 
-            key="stock"
+            "Upload stock CSV (Ingredient, Received Qty)",
+            type=["csv"],
+            key="stock",
         )
         st.caption("Required columns: Ingredient, Received Qty")
-        
+
         st.subheader("Waste Data")
         waste_file = st.file_uploader(
-            "Upload waste CSV (Ingredient, Wasted Qty)", 
-            type=['csv'], 
-            key="waste"
+            "Upload waste CSV (Ingredient, Wasted Qty)",
+            type=["csv"],
+            key="waste",
         )
         st.caption("Required columns: Ingredient, Wasted Qty")
-    
-    # Process button
-    st.header("📊 Generate Report")
-    
-    if st.button("🔄 Run Report", type="primary"):
-        if all([ingredient_file, stock_file, usage_file, waste_file]):
+
+    dfs = []
+    uploads = [
+        (ingredient_file, ["Ingredient", "Unit Cost"], "Ingredient Info CSV"),
+        (stock_file, ["Ingredient", "Received Qty"], "Stock CSV"),
+        (usage_file, ["Ingredient", "Used Qty"], "Usage CSV"),
+        (waste_file, ["Ingredient", "Wasted Qty"], "Waste CSV"),
+    ]
+
+    for file, required, msg in uploads:
+        if file is None:
+            dfs.append(None)
+            continue
+        try:
+            df = pd.read_csv(file)
+            dfs.append(df if validate_csv_structure(df, required, msg) else None)
+        except Exception as e:
+            st.error(f"❌ Error reading {msg}: {str(e)}")
+            dfs.append(None)
+
+    return dfs[0], dfs[1], dfs[2], dfs[3]
+
+
+def generate_report(
+    ingredient_df: Optional[pd.DataFrame],
+    stock_df: Optional[pd.DataFrame],
+    usage_df: Optional[pd.DataFrame],
+    waste_df: Optional[pd.DataFrame],
+) -> Optional[pd.DataFrame]:
+    """Validate inputs and return a processed report dataframe.
+
+    Parameters are dataframes returned from :func:`handle_file_upload`. The
+    function yields ``None`` when required data is missing or processing fails.
+    """
+
+    if not all([ingredient_df is not None, stock_df is not None, usage_df is not None, waste_df is not None]):
+        st.warning("⚠️ Please upload all four CSV files before running the report.")
+        return None
+
+    processed_df = process_ingredient_data(ingredient_df, stock_df, usage_df, waste_df)
+    return processed_df if not processed_df.empty else None
+
+
+def display_results(df: pd.DataFrame) -> None:
+    """Render summary metrics and a detailed results table."""
+
+    st.header("📋 Report Results")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Total Used Cost", f"${df['Used Cost'].sum():.2f}")
+    with col2:
+        st.metric("Total Waste Cost", f"${df['Waste Cost'].sum():.2f}")
+    with col3:
+        st.metric("Total Shrinkage Cost", f"${df['Shrinkage Cost'].sum():.2f}")
+    with col4:
+        st.metric("Grand Total Cost", f"${df['Total Cost'].sum():.2f}")
+
+    st.subheader("Detailed Results")
+    display_df = df.copy()
+    money_columns = ["Unit Cost", "Used Cost", "Waste Cost", "Shrinkage Cost", "Total Cost"]
+    for col in money_columns:
+        if col in display_df.columns:
+            display_df[col] = display_df[col].apply(lambda x: f"${x:.2f}")
+
+    number_columns = ["Used", "Wasted", "Stocked", "Shrinkage"]
+    for col in number_columns:
+        if col in display_df.columns:
+            display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}")
+
+    st.dataframe(display_df, use_container_width=True)
+
+
+def render_export_buttons(df: pd.DataFrame) -> None:
+    """Display buttons for exporting the report to Excel or PDF."""
+
+    st.header("📤 Export Options")
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("📊 Export to Excel", type="secondary"):
             try:
-                # Read CSV files
-                ingredient_df = pd.read_csv(ingredient_file)
-                stock_df = pd.read_csv(stock_file)
-                usage_df = pd.read_csv(usage_file)
-                waste_df = pd.read_csv(waste_file)
-                
-                # Validate CSV structures
-                validations = [
-                    validate_csv_structure(ingredient_df, ['Ingredient', 'Unit Cost'], 'Ingredient Info CSV'),
-                    validate_csv_structure(stock_df, ['Ingredient', 'Received Qty'], 'Stock CSV'),
-                    validate_csv_structure(usage_df, ['Ingredient', 'Used Qty'], 'Usage CSV'),
-                    validate_csv_structure(waste_df, ['Ingredient', 'Wasted Qty'], 'Waste CSV')
-                ]
-                
-                if all(validations):
-                    # Process the data
-                    processed_df = process_ingredient_data(ingredient_df, stock_df, usage_df, waste_df)
-                    
-                    if not processed_df.empty:
-                        st.session_state.processed_data = processed_df
-                        st.success("✅ Report generated successfully!")
-                        st.rerun()
-                    else:
-                        st.error("❌ Failed to process data. Please check your CSV files.")
-                
+                excel_data = create_excel_report(df)
+                st.download_button(
+                    label="⬇️ Download Excel Report",
+                    data=excel_data,
+                    file_name="ingredient_report.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                )
             except Exception as e:
-                st.error(f"❌ Error reading CSV files: {str(e)}")
-                st.info("Please ensure your CSV files are properly formatted and contain the required columns.")
+                st.error(f"❌ Error creating Excel report: {str(e)}")
+
+    with col2:
+        if st.button("📄 Export to PDF", type="secondary"):
+            try:
+                pdf_data = create_pdf_report(df)
+                st.download_button(
+                    label="⬇️ Download PDF Report",
+                    data=pdf_data,
+                    file_name="ingredient_report.pdf",
+                    mime="application/pdf",
+                )
+            except Exception as e:
+                st.error(f"❌ Error creating PDF report: {str(e)}")
+
+# Main application
+def main():
+    """Streamlit application entry point."""
+
+    st.title("🍽️ Restaurant Ingredient Tracker")
+    st.markdown("Upload your CSV files to analyze ingredient usage, waste, and costs.")
+
+    if "processed_data" not in st.session_state:
+        st.session_state.processed_data = None
+
+    ingredient_df, stock_df, usage_df, waste_df = handle_file_upload()
+
+    st.header("📊 Generate Report")
+    if st.button("🔄 Run Report", type="primary"):
+        processed_df = generate_report(ingredient_df, stock_df, usage_df, waste_df)
+        if processed_df is not None:
+            st.session_state.processed_data = processed_df
+            st.success("✅ Report generated successfully!")
+            st.rerun()
         else:
-            st.warning("⚠️ Please upload all four CSV files before running the report.")
-    
-    # Display results
+            st.error("❌ Failed to process data. Please check your CSV files.")
+
     if st.session_state.processed_data is not None and not st.session_state.processed_data.empty:
-        st.header("📋 Report Results")
-        
-        df = st.session_state.processed_data
-        
-        # Summary metrics
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Total Used Cost", f"${df['Used Cost'].sum():.2f}")
-        with col2:
-            st.metric("Total Waste Cost", f"${df['Waste Cost'].sum():.2f}")
-        with col3:
-            st.metric("Total Shrinkage Cost", f"${df['Shrinkage Cost'].sum():.2f}")
-        with col4:
-            st.metric("Grand Total Cost", f"${df['Total Cost'].sum():.2f}")
-        
-        # Data table
-        st.subheader("Detailed Results")
-        
-        # Format numeric columns for display
-        display_df = df.copy()
-        money_columns = ['Unit Cost', 'Used Cost', 'Waste Cost', 'Shrinkage Cost', 'Total Cost']
-        for col in money_columns:
-            if col in display_df.columns:
-                display_df[col] = display_df[col].apply(lambda x: f"${x:.2f}")
-        
-        number_columns = ['Used', 'Wasted', 'Stocked', 'Shrinkage']
-        for col in number_columns:
-            if col in display_df.columns:
-                display_df[col] = display_df[col].apply(lambda x: f"{x:.2f}")
-        
-        st.dataframe(display_df, use_container_width=True)
-        
-        # Export buttons
-        st.header("📤 Export Options")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("📊 Export to Excel", type="secondary"):
-                try:
-                    excel_data = create_excel_report(df)
-                    st.download_button(
-                        label="⬇️ Download Excel Report",
-                        data=excel_data,
-                        file_name="ingredient_report.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    )
-                except Exception as e:
-                    st.error(f"❌ Error creating Excel report: {str(e)}")
-        
-        with col2:
-            if st.button("📄 Export to PDF", type="secondary"):
-                try:
-                    pdf_data = create_pdf_report(df)
-                    st.download_button(
-                        label="⬇️ Download PDF Report",
-                        data=pdf_data,
-                        file_name="ingredient_report.pdf",
-                        mime="application/pdf"
-                    )
-                except Exception as e:
-                    st.error(f"❌ Error creating PDF report: {str(e)}")
-    
+        display_results(st.session_state.processed_data)
+        render_export_buttons(st.session_state.processed_data)
+
     # Instructions
     with st.expander("ℹ️ How to Use This Tool"):
         st.markdown("""
