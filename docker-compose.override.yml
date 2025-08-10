@@ -1,0 +1,100 @@
+# ============================================================================
+# Restaurant Ingredient Tracker - Development Override Configuration
+# ============================================================================
+#
+# This file provides development-specific overrides for docker-compose.yml
+# Use with: docker-compose -f docker-compose.yml -f docker-compose.override.yml up
+#
+# Development Features:
+# - Hot reload for code changes
+# - Debug mode enabled
+# - Development volumes mounted
+# - Additional debugging tools
+# - Simplified configuration for local development
+
+version: '3.8'
+
+services:
+  
+  # Development overrides for the main application
+  restaurant-tracker:
+    # Override build target for development
+    build:
+      target: builder  # Use builder stage instead of production
+      args:
+        APP_USER: streamlit
+        APP_UID: 1000
+        APP_GID: 1000
+    
+    # Development environment variables
+    environment:
+      # Enable development mode
+      - APP_ENV=development
+      - APP_DEBUG=true
+      - APP_LOG_LEVEL=DEBUG
+      
+      # Streamlit development settings
+      - STREAMLIT_SERVER_RUNON_SAVE=true
+      - STREAMLIT_SERVER_FILE_WATCHER_TYPE=auto
+      - STREAMLIT_DEVELOPMENT_MODE=true
+      
+      # Development features
+      - DEV_HOT_RELOAD=true
+      - DEV_DEBUG_TOOLBAR=true
+      - DEV_MOCK_AUTH=true
+      - ENABLE_DEMO_MODE=true
+    
+    # Mount source code for hot reload
+    volumes:
+      # Mount source code (override container code)
+      - ./app.py:/app/app.py:ro
+      - ./sample_*.csv:/app/:ro
+      
+      # Development data directories
+      - ./dev-data:/app/data:rw
+      - ./dev-logs:/app/logs:rw
+      - ./dev-exports:/app/exports:rw
+      
+      # Development configuration
+      - ./config/development.conf:/app/config/app.conf:ro
+    
+    # Override command for development
+    command: >
+      streamlit run app.py
+      --server.port=8501
+      --server.address=0.0.0.0
+      --server.headless=true
+      --server.runOnSave=true
+      --server.fileWatcherType=auto
+      --browser.gatherUsageStats=false
+      --logger.level=debug
+    
+    # Development port mapping (same as production for consistency)
+    ports:
+      - "8501:8501"
+    
+    # Remove resource limits for development
+    deploy:
+      resources: {}
+    
+    # Remove dependency on Redis for simplified development
+    depends_on: []
+  
+  # Disable Redis in development (simplified setup)
+  redis:
+    profiles:
+      - production-only
+  
+  # Disable Nginx in development (direct access to Streamlit)
+  nginx:
+    profiles:
+      - production-only
+
+# Development-specific volumes
+volumes:
+  dev-data:
+    driver: local
+  dev-logs:
+    driver: local
+  dev-exports:
+    driver: local

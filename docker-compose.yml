@@ -1,0 +1,266 @@
+# ============================================================================
+# Restaurant Ingredient Tracker - Docker Compose Configuration
+# ============================================================================
+#
+# This Docker Compose file provides a complete deployment solution for the
+# Restaurant Ingredient Tracker application with:
+# - Streamlit web application service
+# - Redis for session management (optional)
+# - Nginx reverse proxy for production
+# - Volume mounts for data persistence
+# - Environment-based configuration
+# - Health checks and restart policies
+# - Development and production profiles
+
+version: '3.8'
+
+# ============================================================================
+# Services Configuration
+# ============================================================================
+services:
+  
+  # ----------------------------------------------------------------------------
+  # Streamlit Application Service
+  # ----------------------------------------------------------------------------
+  restaurant-tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        APP_USER: streamlit
+        APP_UID: 1000
+        APP_GID: 1000
+    container_name: restaurant-tracker-app
+    
+    # Environment configuration
+    environment:
+      # Streamlit Configuration
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+      - STREAMLIT_SERVER_ENABLE_CORS=false
+      - STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=true
+      - STREAMLIT_SERVER_MAX_UPLOAD_SIZE=200
+      - STREAMLIT_SERVER_MAX_MESSAGE_SIZE=200
+      
+      # Replit Authentication Environment Variables
+      - REPL_ID=${REPL_ID:-}
+      - REPL_OWNER=${REPL_OWNER:-}
+      - REPLIT_USER=${REPLIT_USER:-}
+      - REPLIT_DOMAINS=${REPLIT_DOMAINS:-}
+      
+      # Application Configuration
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_LOG_LEVEL=${APP_LOG_LEVEL:-INFO}
+      - TZ=${TIMEZONE:-UTC}
+      
+      # Security Configuration
+      - SESSION_SECRET_KEY=${SESSION_SECRET_KEY:-your-secret-key-here}
+      - ENABLE_DEMO_MODE=${ENABLE_DEMO_MODE:-true}
+      
+      # Performance Configuration
+      - PYTHONHASHSEED=random
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    
+    # Environment file (create .env file for custom values)
+    env_file:
+      - .env
+    
+    # Port mapping
+    ports:
+      - "${HOST_PORT:-8501}:8501"
+    
+    # Volume mounts for data persistence
+    volumes:
+      # Data directory for uploaded files and processed data
+      - ./data:/app/data:rw
+      # Logs directory for application logs
+      - ./logs:/app/logs:rw
+      # Exports directory for generated reports
+      - ./exports:/app/exports:rw
+      # Custom sample data (optional)
+      - ./sample_data:/app/sample_data:ro
+      # Configuration files (optional)
+      - ./config:/app/config:ro
+    
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    
+    # Network configuration
+    networks:
+      - restaurant-tracker-network
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Dependencies
+    depends_on:
+      redis:
+        condition: service_healthy
+    
+    # Labels for container management
+    labels:
+      - "com.restaurant-tracker.service=webapp"
+      - "com.restaurant-tracker.version=1.0"
+      - "traefik.enable=true"
+      - "traefik.http.routers.restaurant-tracker.rule=Host(`tracker.localhost`)"
+      - "traefik.http.services.restaurant-tracker.loadbalancer.server.port=8501"
+
+  # ----------------------------------------------------------------------------
+  # Redis Service (for session management and caching)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: restaurant-tracker-redis
+    
+    # Redis configuration
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-defaultpassword}
+    
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-defaultpassword}
+    
+    # Port mapping (only expose to localhost for security)
+    ports:
+      - "127.0.0.1:6379:6379"
+    
+    # Volume for Redis data persistence
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Network configuration
+    networks:
+      - restaurant-tracker-network
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+
+  # ----------------------------------------------------------------------------
+  # Nginx Reverse Proxy (for production deployment)
+  # ----------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: restaurant-tracker-nginx
+    profiles:
+      - production
+    
+    # Port mapping
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    
+    # Volume mounts
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx-logs:/var/log/nginx
+    
+    # Dependencies
+    depends_on:
+      - restaurant-tracker
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Network configuration
+    networks:
+      - restaurant-tracker-network
+    
+    # Labels
+    labels:
+      - "com.restaurant-tracker.service=proxy"
+
+# ============================================================================
+# Networks Configuration
+# ============================================================================
+networks:
+  restaurant-tracker-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ============================================================================
+# Volumes Configuration
+# ============================================================================
+volumes:
+  # Redis data persistence
+  redis-data:
+    driver: local
+    labels:
+      - "com.restaurant-tracker.volume=redis-data"
+  
+  # Nginx logs
+  nginx-logs:
+    driver: local
+    labels:
+      - "com.restaurant-tracker.volume=nginx-logs"
+
+# ============================================================================
+# Development Override (use with docker-compose.override.yml)
+# ============================================================================
+# To use development mode:
+# 1. Create docker-compose.override.yml
+# 2. Override the build target to 'builder'
+# 3. Mount source code for live reload
+# 4. Enable debug mode
