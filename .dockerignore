@@ -1,0 +1,371 @@
+# ============================================================================
+# Restaurant Ingredient Tracker - Docker Ignore Configuration
+# ============================================================================
+#
+# This file specifies which files and directories should be excluded from
+# the Docker build context to optimize build performance and security.
+#
+# Benefits:
+# - Faster builds by reducing context size
+# - Better security by excluding sensitive files
+# - Smaller Docker images
+# - Reduced network transfer during builds
+
+# ============================================================================
+# Version Control and Git Files
+# ============================================================================
+.git
+.gitignore
+.gitattributes
+.gitmodules
+**/.git
+**/.gitignore
+
+# ============================================================================
+# Environment and Configuration Files
+# ============================================================================
+.env
+.env.*
+!.env.example
+.envrc
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# Python Development Files
+# ============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.virtualenv
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# PyCharm
+.idea/
+
+# ============================================================================
+# Node.js and JavaScript (if any frontend components)
+# ============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+.eslintcache
+
+# ============================================================================
+# Docker Files (avoid recursive Docker builds)
+# ============================================================================
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# ============================================================================
+# Logs and Temporary Files
+# ============================================================================
+logs/
+*.log
+log/
+tmp/
+temp/
+.tmp/
+.temp/
+
+# ============================================================================
+# OS Generated Files
+# ============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.tmp
+*.swp
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# ============================================================================
+# Application Specific Files
+# ============================================================================
+
+# Data directories (will be mounted as volumes)
+data/
+logs/
+exports/
+uploads/
+downloads/
+
+# Backup files
+backups/
+*.backup
+*.bak
+
+# Configuration files that should not be in the image
+config/local.conf
+config/development.conf
+config/*.local.*
+
+# SSL certificates and keys
+ssl/
+certificates/
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache directories
+.cache/
+cache/
+.npm/
+.yarn/
+
+# ============================================================================
+# Development and Testing Files
+# ============================================================================
+tests/
+test/
+*_test.py
+test_*.py
+**/test_*.py
+**/tests/
+
+# Documentation source files (keep only built docs)
+docs/source/
+docs/build/
+*.md
+!README.md
+
+# Development scripts
+scripts/dev/
+scripts/local/
+dev/
+development/
+
+# ============================================================================
+# CI/CD and Deployment Files
+# ============================================================================
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+.jenkins/
+Jenkinsfile
+.azure-pipelines.yml
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Kubernetes
+k8s/
+kubernetes/
+*.yaml
+*.yml
+!docker-compose.yml
+
+# ============================================================================
+# Security and Secrets
+# ============================================================================
+secrets/
+.secrets/
+*.secret
+.htpasswd
+.netrc
+
+# ============================================================================
+# Editor and IDE Files
+# ============================================================================
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.vim/
+.emacs.d/
+
+# ============================================================================
+# Build and Distribution Files
+# ============================================================================
+build/
+dist/
+target/
+out/
+bin/
+
+# ============================================================================
+# Replit Specific Files (since app supports Replit)
+# ============================================================================
+.replit
+replit.nix
+replit.md
+.config/
+.breakpoints
+.env.replit
+
+# ============================================================================
+# Miscellaneous
+# ============================================================================
+*.orig
+*.rej
+.directory
+.gdb_history
+
+# Large media files that shouldn't be in containers
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mp3
+*.wav
+*.flac
+*.aac
+
+# Large image files (keep small logos/icons)
+*.psd
+*.ai
+*.eps
+*.tiff
+*.tif
+*.bmp
+
+# Archive files
+*.zip
+*.tar
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z
+
+# ============================================================================
+# Include Essential Files (override some exclusions)
+# ============================================================================
+# Use ! to include files that might be excluded by patterns above
+!sample_*.csv
+!README.md
+!requirements.txt
+!pyproject.toml
