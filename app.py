@@ -1,65 +1,150 @@
-import streamlit as st
-import pandas as pd
-import io
-from fpdf import FPDF
-from typing import Optional, Tuple
-import logging
-from datetime import datetime
-import os
-import requests
-from urllib.parse import urlencode
-import json
+"""
+Restaurant Ingredient Tracker - Streamlit Application
 
+This application provides a comprehensive solution for restaurant inventory management,
+tracking ingredient usage, waste, and costs. It features enterprise-grade authentication
+via Replit and supports both demo mode for testing and production deployment.
 
+Key Features:
+- CSV file upload and processing for ingredient data
+- Cost analysis including usage, waste, and shrinkage calculations
+- PDF and Excel report generation
+- Real-time analytics and insights
+- Enterprise authentication with Replit integration
+- Demo mode for testing without authentication
+
+Author: Restaurant Management Solutions
+Version: 1.0
+"""
+
+# Standard library imports for core functionality
+import streamlit as st  # Main web framework for the application
+import pandas as pd     # Data manipulation and analysis
+import io              # Input/output operations for file handling
+from fpdf import FPDF  # PDF generation library
+from typing import Optional, Tuple  # Type hints for better code documentation
+import logging         # Logging functionality (currently unused but available)
+from datetime import datetime  # Date and time operations for timestamps
+import os             # Operating system interface for environment variables
+import requests       # HTTP library (currently unused but available for future API calls)
+from urllib.parse import urlencode  # URL encoding utilities
+import json           # JSON parsing (currently unused but available)
+
+# Application-wide constants for data formatting and validation
+# These columns will be formatted as currency in displays and exports
 MONEY_COLUMNS = [
-    "Unit Cost",
-    "Used Cost",
-    "Waste Cost",
-    "Shrinkage Cost",
-    "Total Cost",
+    "Unit Cost",      # Cost per unit of ingredient
+    "Used Cost",      # Total cost of ingredients used
+    "Waste Cost",     # Total cost of wasted ingredients
+    "Shrinkage Cost", # Cost of missing/stolen inventory
+    "Total Cost",     # Sum of all costs
 ]
 
+# These columns contain numeric quantities (not currency)
 NUMBER_COLUMNS = ["Used", "Wasted", "Stocked"]
 
-# Page configuration
+# Streamlit page configuration - sets up the overall appearance and layout
 st.set_page_config(
-    page_title="Restaurant Ingredient Tracker",
-    page_icon="🍽️",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Restaurant Ingredient Tracker",  # Browser tab title
+    page_icon="🍽️",                             # Browser tab icon
+    layout="wide",                               # Use full width of browser
+    initial_sidebar_state="expanded"             # Show sidebar by default
 )
 
-# Replit Auth Configuration
+# TODO: LOGO PLACEMENT - Add your restaurant logo here
+# You can add a logo to the top left of the page using st.logo() or st.image()
+# Example implementations:
+# st.logo("path/to/your/logo.png")  # For Streamlit 1.29+
+# or
+# with st.container():
+#     col1, col2, col3 = st.columns([1, 2, 1])
+#     with col1:
+#         st.image("path/to/your/logo.png", width=200)
+
+# =============================================================================
+# AUTHENTICATION SYSTEM - Replit Integration
+# =============================================================================
+
 class ReplitAuth:
-    """Replit Authentication Handler with enterprise-grade features."""
+    """
+    Enterprise-grade authentication handler for Replit environment.
+    
+    This class manages user authentication using Replit's built-in authentication
+    system. It automatically detects when running in a Replit environment and
+    handles session management through Streamlit's session state.
+    
+    Features:
+    - Automatic environment detection
+    - Secure session management
+    - Enterprise-grade user data handling
+    - Fallback support for non-Replit environments
+    """
     
     def __init__(self):
-        self.repl_id = os.getenv('REPL_ID')
-        self.repl_owner = os.getenv('REPL_OWNER') 
-        self.replit_user = os.getenv('REPLIT_USER')
-        self.replit_domains = os.getenv('REPLIT_DOMAINS')
+        """
+        Initialize the authentication handler with Replit environment variables.
+        
+        Environment variables used:
+        - REPL_ID: Unique identifier for the current Replit instance
+        - REPL_OWNER: Username of the Replit workspace owner
+        - REPLIT_USER: Current authenticated user in Replit
+        - REPLIT_DOMAINS: Available domains for the Replit instance
+        """
+        # Fetch authentication-related environment variables from Replit
+        self.repl_id = os.getenv('REPL_ID')           # Unique Replit instance ID
+        self.repl_owner = os.getenv('REPL_OWNER')     # Workspace owner username
+        self.replit_user = os.getenv('REPLIT_USER')   # Current authenticated user
+        self.replit_domains = os.getenv('REPLIT_DOMAINS')  # Available domains
         
     def is_replit_environment(self) -> bool:
-        """Check if running in Replit environment."""
+        """
+        Check if the application is running in a Replit environment.
+        
+        Returns:
+            bool: True if running in Replit, False otherwise
+            
+        Note:
+            This is determined by the presence of the REPL_ID environment variable,
+            which is automatically set by Replit for all running instances.
+        """
         return self.repl_id is not None
     
     def get_authenticated_user(self) -> dict:
-        """Get authenticated user information."""
+        """
+        Retrieve authenticated user information from the Replit environment.
+        
+        Returns:
+            dict: Authentication result containing:
+                - authenticated (bool): Whether user is authenticated
+                - user (dict|None): User data if authenticated, None otherwise
+                
+        User data structure:
+            - id: User identifier (repl_owner)
+            - username: Display username
+            - display_name: Human-readable name
+            - repl_id: Unique Replit instance identifier
+            - authenticated: Authentication status
+            - auth_method: Authentication method used
+            - session_data: Additional session information
+        """
+        # Return unauthenticated if not in Replit environment
         if not self.is_replit_environment():
             return {'authenticated': False, 'user': None}
         
-        # Primary authentication through Replit environment
+        # Determine username from available sources (prefer REPLIT_USER over REPL_OWNER)
         username = self.replit_user or self.repl_owner
         
+        # Validate that we have both username and repl_id for authentication
         if username and self.repl_id:
+            # Construct comprehensive user data object
             user_data = {
-                'id': self.repl_owner,
-                'username': username,
-                'display_name': username,
-                'repl_id': self.repl_id,
-                'authenticated': True,
-                'auth_method': 'replit_builtin',
-                'session_data': {
+                'id': self.repl_owner,                    # Primary user identifier
+                'username': username,                     # Username for display
+                'display_name': username,                 # Human-readable name
+                'repl_id': self.repl_id,                 # Replit instance ID
+                'authenticated': True,                    # Authentication status
+                'auth_method': 'replit_builtin',         # Authentication method
+                'session_data': {                        # Additional session context
                     'repl_owner': self.repl_owner,
                     'replit_user': self.replit_user,
                     'domains': self.replit_domains
@@ -67,69 +152,159 @@ class ReplitAuth:
             }
             return {'authenticated': True, 'user': user_data}
         
+        # Return unauthenticated if required data is missing
         return {'authenticated': False, 'user': None}
     
     def create_session(self, user_data: dict) -> bool:
-        """Create authenticated session in Streamlit."""
+        """
+        Create an authenticated session in Streamlit's session state.
+        
+        Args:
+            user_data (dict): User authentication data from get_authenticated_user()
+            
+        Returns:
+            bool: True if session created successfully, False otherwise
+            
+        Side Effects:
+            - Sets st.session_state.replit_auth to True
+            - Stores user data in st.session_state.replit_user
+            - Sets default page to dashboard
+        """
+        # Validate user data and authentication status
         if user_data and user_data.get('authenticated'):
+            # Store authentication status and user data in session state
             st.session_state.replit_auth = True
             st.session_state.replit_user = user_data['user']
-            st.session_state.current_page = "dashboard"
+            st.session_state.current_page = "dashboard"  # Default landing page
             return True
         return False
     
     def clear_session(self):
-        """Clear authentication session."""
-        # Clear all auth-related session state
+        """
+        Clear all authentication-related data from the session.
+        
+        This method performs a comprehensive cleanup of session state,
+        removing all authentication data and resetting the user to
+        an unauthenticated state.
+        
+        Side Effects:
+            - Removes all auth-related session state keys
+            - Resets authentication status to False
+            - Redirects to login page
+        """
+        # Identify all authentication-related session state keys
         auth_keys = [key for key in st.session_state.keys() 
                     if key.startswith(('replit_', 'demo_', 'processed_', 'show_sample_', 'current_page'))]
         
+        # Remove all identified authentication keys
         for key in auth_keys:
             if key in st.session_state:
                 del st.session_state[key]
         
+        # Reset authentication state and redirect to login
         st.session_state.replit_auth = False
         st.session_state.current_page = "login"
     
     def is_authenticated(self) -> bool:
-        """Check if user is currently authenticated."""
+        """
+        Check if a user is currently authenticated in the session.
+        
+        Returns:
+            bool: True if user is authenticated, False otherwise
+            
+        Note:
+            This checks the session state rather than re-validating
+            with the Replit environment for performance reasons.
+        """
         return st.session_state.get('replit_auth', False)
     
     def get_current_user(self) -> dict:
-        """Get current authenticated user data."""
+        """
+        Retrieve the current authenticated user's data from session state.
+        
+        Returns:
+            dict: Current user data, or empty dict if not authenticated
+            
+        Note:
+            This returns cached user data from the session. For fresh
+            authentication data, use get_authenticated_user() instead.
+        """
         return st.session_state.get('replit_user', {})
 
-# Initialize Replit Auth
+# =============================================================================
+# AUTHENTICATION INITIALIZATION & HELPER FUNCTIONS
+# =============================================================================
+
+# Initialize the global authentication handler instance
 replit_auth = ReplitAuth()
 
 def get_replit_user_info():
-    """Legacy function - use ReplitAuth class instead."""
+    """
+    Legacy authentication function for backward compatibility.
+    
+    DEPRECATED: Use ReplitAuth class methods directly instead.
+    
+    Returns:
+        dict: User information in legacy format, or {'authenticated': False}
+        
+    Note:
+        This function is maintained for backward compatibility but new code
+        should use replit_auth.get_authenticated_user() directly.
+    """
     auth_result = replit_auth.get_authenticated_user()
     if auth_result['authenticated']:
         user = auth_result['user']
+        # Convert to legacy format for backward compatibility
         return {
             'id': user['id'],
             'name': user['username'],
             'authenticated': True,
             'repl_id': user['repl_id'],
             'repl_owner': user['session_data']['repl_owner'],
-            'replit_user': user['session_data']['replit_user']
+            'replit_user': user['session_data']['repl_user']
         }
     return {'authenticated': False}
 
 def is_replit_environment():
-    """Check if running in Replit environment."""
+    """
+    Check if the application is running in a Replit environment.
+    
+    Returns:
+        bool: True if running in Replit, False otherwise
+        
+    Note:
+        This is a convenience wrapper around the ReplitAuth class method.
+        Use replit_auth.is_replit_environment() directly in new code.
+    """
     return replit_auth.is_replit_environment()
 
-# Fallback authentication for non-Replit environments
+# =============================================================================
+# DEMO MODE AUTHENTICATION - For Testing and Development
+# =============================================================================
+
+# Demo user accounts for testing the application outside Replit environment
+# These credentials are used when the app is not running in Replit
 DEMO_USERS = {
-    "admin": "admin123",
-    "manager": "manager456", 
-    "staff": "staff789"
+    "admin": "admin123",      # Administrative access account
+    "manager": "manager456",  # Management level access
+    "staff": "staff789"       # Staff level access
 }
 
 def verify_demo_password(username: str, password: str) -> bool:
-    """Verify demo user credentials for non-Replit environments."""
+    """
+    Verify demo user credentials for non-Replit environments.
+    
+    Args:
+        username (str): The username to verify
+        password (str): The password to verify
+        
+    Returns:
+        bool: True if credentials are valid, False otherwise
+        
+    Security Note:
+        These are demo credentials only. In production, this should be
+        replaced with proper authentication (database, OAuth, etc.).
+    """
     return username in DEMO_USERS and DEMO_USERS[username] == password
 
 def show_replit_login_page():
@@ -302,13 +477,37 @@ def show_demo_login():
                     else:
                         st.error("Invalid username or password. Please try again.")
 
+# =============================================================================
+# USER INTERFACE FUNCTIONS - Navigation and Layout
+# =============================================================================
+
 def show_navigation_sidebar():
-    """Display navigation sidebar with page selection and logout."""
+    """
+    Display the main navigation sidebar with user info and page navigation.
+    
+    This function creates a comprehensive sidebar that includes:
+    - User authentication status and information
+    - Navigation buttons for all main pages
+    - Logout functionality with proper session cleanup
+    
+    Features:
+    - Responsive design that adapts to authentication method
+    - Visual indicators for authentication status
+    - Clean navigation with emoji icons
+    - Proper session state management
+    
+    Side Effects:
+    - Updates st.session_state.current_page when navigation buttons are clicked
+    - Triggers page reloads using st.rerun() for navigation
+    - Clears session data during logout
+    """
     with st.sidebar:
+        # Application branding and title
         st.markdown("### 🍽️ Restaurant Tracker")
         
-        # User info section
+        # User information and authentication status section
         if replit_auth.is_authenticated():
+            # Display Replit authenticated user information
             user = replit_auth.get_current_user()
             username = user.get('display_name', 'User')
             auth_method = user.get('auth_method', 'replit_builtin')
@@ -319,20 +518,21 @@ def show_navigation_sidebar():
             else:
                 st.markdown(f"*via {auth_method}* 🔐")
         else:
-            # Fallback for demo mode
+            # Fallback display for demo mode users
             username = st.session_state.get('demo_username', 'Demo User')
             st.markdown(f"**Demo Mode:** {username}")
         
-        st.markdown("---")
+        st.markdown("---")  # Visual separator
         
-        # Page navigation
+        # Main navigation section
         st.markdown("### 📋 Navigation")
         
-        # Initialize current_page if not exists
+        # Initialize navigation state if not already set
         if "current_page" not in st.session_state:
             st.session_state.current_page = "dashboard"
         
-        # Navigation buttons
+        # Navigation buttons with icons and consistent styling
+        # Each button updates the current page and triggers a rerun
         if st.button("🏠 Dashboard", type="secondary", use_container_width=True):
             st.session_state.current_page = "dashboard"
             st.rerun()
@@ -349,16 +549,17 @@ def show_navigation_sidebar():
             st.session_state.current_page = "settings"
             st.rerun()
         
-        st.markdown("---")
+        st.markdown("---")  # Visual separator
         
-        # Logout section
+        # Account management section
         st.markdown("### 🔐 Account")
         if st.button("🚪 Logout", type="primary", use_container_width=True):
-            # Use proper auth logout
+            # Handle logout based on authentication method
             if replit_auth.is_authenticated():
+                # Use Replit auth logout (comprehensive session cleanup)
                 replit_auth.clear_session()
             else:
-                # Fallback for demo mode
+                # Manual cleanup for demo mode
                 st.session_state.demo_authenticated = False
                 st.session_state.demo_username = None
                 st.session_state.processed_data = None
@@ -366,7 +567,7 @@ def show_navigation_sidebar():
                 st.session_state.current_page = "login"
             
             st.success("Logged out successfully!")
-            st.rerun()
+            st.rerun()  # Refresh to show login page
 
 def check_authentication():
     """Check if user is authenticated via Replit Auth or demo mode."""
@@ -398,137 +599,245 @@ def check_authentication():
             show_navigation_sidebar()
             return True
 
+# =============================================================================
+# DATA VALIDATION FUNCTIONS
+# =============================================================================
+
 def validate_csv_structure(df: pd.DataFrame, required_columns: list, file_type: str) -> bool:
-    """Validate that the CSV has the required columns and numeric data."""
+    """
+    Comprehensive validation of CSV file structure and data quality.
+    
+    This function performs multiple validation checks on uploaded CSV files to ensure
+    data integrity before processing. It validates structure, data types, and
+    identifies potential data quality issues.
+    
+    Args:
+        df (pd.DataFrame): The pandas DataFrame to validate
+        required_columns (list): List of column names that must be present
+        file_type (str): Human-readable description of the file type for error messages
+        
+    Returns:
+        bool: True if validation passes, False if critical errors are found
+        
+    Validation Checks:
+        1. Required columns presence
+        2. Empty DataFrame detection
+        3. Duplicate ingredient detection
+        4. Numeric data validation
+        5. Negative value detection (warnings only)
+        6. Unexpected column detection (warnings only)
+    """
+    # Check 1: Validate all required columns are present
     missing_columns = [col for col in required_columns if col not in df.columns]
     if missing_columns:
         st.error(f"{file_type} is missing required columns: {', '.join(missing_columns)}")
         return False
 
-    # Check for empty dataframe
+    # Check 2: Ensure DataFrame contains data
     if df.empty:
         st.error(f"{file_type} is empty. Please provide a CSV file with data.")
         return False
 
-    # Check for duplicate ingredients
+    # Check 3: Detect duplicate ingredients (would cause data processing issues)
     if 'Ingredient' in df.columns:
         duplicates = df[df['Ingredient'].duplicated()]
         if not duplicates.empty:
             st.error(f"{file_type} contains duplicate ingredients: {', '.join(duplicates['Ingredient'].tolist())}")
             return False
 
-    # Check that expected numeric columns can be parsed as numbers
+    # Check 4: Validate numeric columns contain valid numbers
+    # Identify numeric columns (all columns except 'Ingredient')
     numeric_columns = [col for col in required_columns if col.lower() != 'ingredient']
+    
     for col in numeric_columns:
-        # First check for negative values in cost and quantity columns
+        # Convert string data to numeric, handling mixed data types
         if df[col].dtype in ['object', 'string']:
             converted = pd.to_numeric(df[col], errors='coerce')
         else:
             converted = df[col]
             
+        # Check for non-numeric values (NaN after conversion indicates invalid data)
         if pd.isna(converted).any():
             invalid_rows = df[pd.isna(converted)]
             st.error(f"{file_type} has non-numeric values in column '{col}' at rows: {invalid_rows.index.tolist()}")
             return False
             
-        # Check for negative values (which don't make sense for costs/quantities)
+        # Check 5: Warn about negative values (unusual but not necessarily invalid)
         negative_mask = converted < 0
         if negative_mask.any():
             negative_rows = df[negative_mask]
             st.warning(f"{file_type} has negative values in column '{col}' at rows: {negative_rows.index.tolist()}")
 
-    # Warn about any unexpected extra columns (potential typos)
+    # Check 6: Warn about unexpected columns (potential typos or extra data)
     extra_columns = [col for col in df.columns if col not in required_columns]
     if extra_columns:
         st.warning(f"{file_type} has unexpected columns: {', '.join(extra_columns)}")
 
     return True
 
+# =============================================================================
+# DATA PROCESSING FUNCTIONS
+# =============================================================================
+
 def process_ingredient_data(ingredient_info: pd.DataFrame, input_stock: pd.DataFrame, 
                           usage: pd.DataFrame, waste: pd.DataFrame) -> pd.DataFrame:
-    """Process the ingredient data and calculate metrics."""
-    try:
-        # Create a copy of ingredient info as the base dataframe
-        df = ingredient_info.copy()
-        df = df.set_index('Ingredient')
+    """
+    Process and merge ingredient data from multiple CSV files to calculate comprehensive metrics.
+    
+    This is the core data processing function that combines ingredient information,
+    stock levels, usage, and waste data to calculate various cost metrics and
+    identify potential inventory issues.
+    
+    Args:
+        ingredient_info (pd.DataFrame): Base ingredient data with columns ['Ingredient', 'Unit Cost']
+        input_stock (pd.DataFrame): Stock/inventory data with columns ['Ingredient', 'Received Qty']
+        usage (pd.DataFrame): Usage data with columns ['Ingredient', 'Used Qty']
+        waste (pd.DataFrame): Waste data with columns ['Ingredient', 'Wasted Qty']
         
-        # Merge data from other CSVs
+    Returns:
+        pd.DataFrame: Processed DataFrame with calculated metrics, or empty DataFrame on error
+        
+    Calculated Metrics:
+        - Expected Use: Used + Wasted (total quantity that should have been consumed)
+        - Used Cost: Used Qty × Unit Cost (cost of ingredients actually used)
+        - Waste Cost: Wasted Qty × Unit Cost (cost of wasted ingredients)
+        - Expected Use Cost: Expected Use × Unit Cost (total cost of consumed ingredients)
+        - Stocked Cost: Stocked Qty × Unit Cost (total value of received inventory)
+        - Shrinkage Cost: Stocked Cost - Expected Use Cost (cost of missing/stolen inventory)
+        - Total Cost: Used Cost + Waste Cost + Shrinkage Cost (total cost impact)
+        
+    Data Integrity Handling:
+        - Missing ingredients are added with zero unit cost and warnings displayed
+        - Missing data is filled with zeros to prevent calculation errors
+        - All operations are wrapped in try-catch for error handling
+    """
+    try:
+        # Step 1: Create working copy and set up base structure
+        # Use ingredient_info as the foundation since it contains unit costs
+        df = ingredient_info.copy()
+        df = df.set_index('Ingredient')  # Set ingredient names as index for easy merging
+        
+        # Step 2: Prepare other DataFrames for merging
+        # Convert all DataFrames to use Ingredient as index for consistent merging
         usage_indexed = usage.set_index('Ingredient')
         waste_indexed = waste.set_index('Ingredient')
         stock_indexed = input_stock.set_index('Ingredient')
 
-        # Identify ingredients present in stock/usage/waste but missing from
-        # the ingredient info. Warn the user and include them with zero cost
-        # so they appear in the final report.
+        # Step 3: Handle missing ingredients across datasets
+        # Find ingredients that appear in usage/waste/stock but not in ingredient_info
         all_indices = usage_indexed.index.union(waste_indexed.index).union(stock_indexed.index)
         missing_ingredients = all_indices.difference(df.index)
+        
         if not missing_ingredients.empty:
+            # Warn user about data inconsistencies
             st.warning(
                 "The following ingredients were found in stock, usage, or waste files but "
                 "are missing from the ingredient info: "
                 + ", ".join(missing_ingredients)
             )
-            # Add the missing ingredients to the dataframe with zero unit cost
+            # Add missing ingredients with zero unit cost to prevent calculation errors
+            # This ensures all ingredients appear in the final report even without cost info
             df = df.reindex(df.index.union(missing_ingredients), fill_value=0)
 
-        # Add quantities to the main dataframe
+        # Step 4: Merge quantity data from all sources
+        # Use reindex() with fillna(0) to handle missing data gracefully
         df['Used'] = usage_indexed['Used Qty'].reindex(df.index).fillna(0)
         df['Wasted'] = waste_indexed['Wasted Qty'].reindex(df.index).fillna(0)
         df['Stocked'] = stock_indexed['Received Qty'].reindex(df.index).fillna(0)
         
-        # Calculate derived metrics
+        # Step 5: Calculate derived metrics for cost analysis
+        # Expected Use: Total quantity that should have been consumed
         df['Expected Use'] = df['Used'] + df['Wasted']
-        df['Used Cost'] = df['Used'] * df['Unit Cost']
-        df['Waste Cost'] = df['Wasted'] * df['Unit Cost']
-        df['Expected Use Cost'] = df['Expected Use'] * df['Unit Cost']
-        df['Stocked Cost'] = df['Stocked'] * df['Unit Cost']
-        # Shrinkage Cost is the dollar value of missing/stolen inventory
-        # Formula: Stocked Cost - Expected Use Cost = Shrinkage Cost
+        
+        # Cost calculations: Quantity × Unit Cost for each category
+        df['Used Cost'] = df['Used'] * df['Unit Cost']           # Cost of productive usage
+        df['Waste Cost'] = df['Wasted'] * df['Unit Cost']       # Cost of waste/spoilage
+        df['Expected Use Cost'] = df['Expected Use'] * df['Unit Cost']  # Total expected consumption cost
+        df['Stocked Cost'] = df['Stocked'] * df['Unit Cost']    # Total value of received inventory
+        
+        # Shrinkage Cost: The dollar value of inventory that went missing
+        # This could indicate theft, unrecorded waste, measurement errors, etc.
+        # Formula: What we received - What we can account for = What's missing
         df['Shrinkage Cost'] = df['Stocked Cost'] - df['Expected Use Cost']
+        
+        # Total Cost: Sum of all cost impacts (productive use + waste + shrinkage)
         df['Total Cost'] = df['Used Cost'] + df['Waste Cost'] + df['Shrinkage Cost']
         
-        # Reset index to make Ingredient a column again
+        # Step 6: Reset index to convert Ingredient back to a regular column
+        # This makes the DataFrame easier to work with in the UI
         df.reset_index(inplace=True)
         
         return df
         
     except Exception as e:
+        # Handle any processing errors gracefully
         st.error(f"Error processing data: {str(e)}")
-        return pd.DataFrame()
+        return pd.DataFrame()  # Return empty DataFrame to prevent crashes
+
+# =============================================================================
+# REPORT GENERATION FUNCTIONS
+# =============================================================================
 
 def create_pdf_report(df: pd.DataFrame) -> bytes:
-    """Generate a PDF report from the dataframe."""
+    """
+    Generate a professionally formatted PDF report from the processed ingredient data.
+    
+    This function creates a comprehensive PDF report with:
+    - Header with title and generation timestamp
+    - Detailed table of all ingredients and their metrics
+    - Summary totals section
+    - Proper formatting and pagination
+    
+    Args:
+        df (pd.DataFrame): Processed ingredient data with all calculated metrics
+        
+    Returns:
+        bytes: PDF file content as bytes, ready for download
+        
+    Features:
+        - Automatic page breaks when content exceeds page height
+        - Professional formatting with consistent column widths
+        - Header repetition on new pages
+        - Summary totals at the end
+        - Proper currency and number formatting
+    """
+    # Initialize PDF document with default settings
     pdf = FPDF()
     pdf.add_page()
+    
+    # Create report header with title and timestamp
     pdf.set_font("Arial", "B", 16)
     pdf.cell(0, 10, "Restaurant Ingredient Tracking Report", ln=True, align="C")
     pdf.set_font("Arial", size=10)
     pdf.cell(0, 8, f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align="C")
-    pdf.ln(10)
+    pdf.ln(10)  # Add spacing after header
     
-    # Table headers - adjust column widths for better fit
+    # Create table headers with optimized column widths
     pdf.set_font("Arial", "B", 7)
-    col_widths = [30, 18, 15, 15, 18, 25, 20, 20, 25]  # Custom widths for each column
+    # Column widths are carefully chosen to fit content while maintaining readability
+    col_widths = [30, 18, 15, 15, 18, 25, 20, 20, 25]  # Widths in mm for each column
     headers = ['Ingredient', 'Unit Cost', 'Used', 'Wasted', 'Stocked', 'Shrinkage Cost', 'Used Cost', 'Waste Cost', 'Total Cost']
     
+    # Draw table header row
     for i, header in enumerate(headers):
         pdf.cell(col_widths[i], 8, header, border=1, align="C")
     pdf.ln()
     
-    # Table data
-    pdf.set_font("Arial", size=6)
+    # Process each ingredient row in the data
+    pdf.set_font("Arial", size=6)  # Smaller font for data rows
     for _, row in df.iterrows():
-        # Check if we need a new page
-        if pdf.get_y() > 250:
+        # Check if we need a new page (pagination)
+        if pdf.get_y() > 250:  # If close to bottom of page
             pdf.add_page()
-            # Re-add headers on new page
+            # Re-add headers on new page for continuity
             pdf.set_font("Arial", "B", 7)
             for i, header in enumerate(headers):
                 pdf.cell(col_widths[i], 8, header, border=1, align="C")
             pdf.ln()
             pdf.set_font("Arial", size=6)
-            
-        pdf.cell(col_widths[0], 6, str(row['Ingredient'])[:20], border=1)
+        
+        # Add data row with proper formatting
+        pdf.cell(col_widths[0], 6, str(row['Ingredient'])[:20], border=1)  # Truncate long names
         pdf.cell(col_widths[1], 6, f"${row['Unit Cost']:.2f}", border=1, align="R")
         pdf.cell(col_widths[2], 6, f"{row['Used']:.1f}", border=1, align="R")
         pdf.cell(col_widths[3], 6, f"{row['Wasted']:.1f}", border=1, align="R")
@@ -539,23 +848,27 @@ def create_pdf_report(df: pd.DataFrame) -> bytes:
         pdf.cell(col_widths[8], 6, f"${row['Total Cost']:.2f}", border=1, align="R")
         pdf.ln()
     
-    # Summary totals
-    pdf.ln(10)
+    # Add summary section with totals
+    pdf.ln(10)  # Add spacing before summary
     pdf.set_font("Arial", "B", 12)
     pdf.cell(0, 8, "Summary Totals:", ln=True)
     pdf.set_font("Arial", size=10)
     
+    # Calculate summary totals
     total_used_cost = df['Used Cost'].sum()
     total_waste_cost = df['Waste Cost'].sum()
     total_shrinkage_cost = df['Shrinkage Cost'].sum()
     grand_total = df['Total Cost'].sum()
     
+    # Display summary totals
     pdf.cell(0, 6, f"Total Used Cost: ${total_used_cost:.2f}", ln=True)
     pdf.cell(0, 6, f"Total Waste Cost: ${total_waste_cost:.2f}", ln=True)
     pdf.cell(0, 6, f"Total Shrinkage Cost: ${total_shrinkage_cost:.2f}", ln=True)
     pdf.cell(0, 6, f"Grand Total Cost: ${grand_total:.2f}", ln=True)
     
-    pdf_output = pdf.output(dest='S')
+    # Generate and return PDF as bytes
+    pdf_output = pdf.output(dest='S')  # Generate PDF content
+    # Handle different FPDF versions (some return string, others bytes)
     if isinstance(pdf_output, str):
         return pdf_output.encode('latin1')
     return bytes(pdf_output)
@@ -876,7 +1189,31 @@ def render_export_buttons(df: pd.DataFrame) -> None:
                 st.error(f"❌ Error creating PDF report: {str(e)}")
 
 def show_dashboard_page():
-    """Display the main dashboard page with data upload and processing."""
+    """
+    Display the main dashboard page with data upload and processing.
+    
+    This is the primary interface where users upload CSV files and generate reports.
+    The page includes file upload sections, sample data options, and quick metrics display.
+    """
+    # TODO: LOGO PLACEMENT - Add your restaurant logo here
+    # Uncomment and customize one of the following logo implementations:
+    
+    # Option 1: Using st.logo() (Streamlit 1.29+)
+    # st.logo("path/to/your/logo.png")
+    
+    # Option 2: Using columns for precise positioning
+    # col1, col2, col3 = st.columns([1, 3, 1])
+    # with col1:
+    #     st.image("path/to/your/logo.png", width=150)
+    # with col2:
+    #     st.title("🏠 Dashboard")
+    # with col3:
+    #     pass  # Empty column for spacing
+    
+    # Option 3: Simple image at top
+    # st.image("path/to/your/logo.png", width=200)
+    
+    # Current title (replace with logo implementation above)
     st.title("🏠 Dashboard")
     st.markdown("Upload your CSV files to analyze ingredient usage, waste, and costs.")
     
@@ -1122,31 +1459,55 @@ def show_settings_page():
         st.success("All data cleared!")
         st.rerun()
 
-# Main application
+# =============================================================================
+# MAIN APPLICATION ENTRY POINT
+# =============================================================================
+
 def main():
-    """Streamlit application entry point."""
+    """
+    Streamlit application entry point and main routing function.
     
-    # Check authentication first
+    This function serves as the central controller for the entire application.
+    It handles authentication, navigation routing, and ensures proper page display.
+    
+    Application Flow:
+    1. Check user authentication (Replit or demo mode)
+    2. Initialize navigation state if needed
+    3. Route to the appropriate page based on current_page session state
+    4. Display the requested page content
+    
+    Authentication:
+    - Returns early if authentication fails (user sees login page)
+    - Supports both Replit enterprise auth and demo mode
+    
+    Navigation:
+    - Uses session state to maintain current page
+    - Provides fallback to dashboard for invalid page states
+    - Integrates with sidebar navigation for seamless UX
+    """
+    
+    # Step 1: Verify user authentication before showing any application content
     if not check_authentication():
-        return
+        return  # User will see login page, don't proceed to app content
     
-    # Initialize session state for navigation
+    # Step 2: Initialize navigation state for new sessions
     if "current_page" not in st.session_state:
-        st.session_state.current_page = "dashboard"
+        st.session_state.current_page = "dashboard"  # Default landing page
     
-    # Route to appropriate page
+    # Step 3: Route user to the appropriate page based on navigation state
     if st.session_state.current_page == "dashboard":
-        show_dashboard_page()
+        show_dashboard_page()      # Main data upload and processing page
     elif st.session_state.current_page == "analytics":
-        show_analytics_page()
+        show_analytics_page()      # Advanced data analysis and insights
     elif st.session_state.current_page == "reports":
-        show_reports_page()
+        show_reports_page()        # Export and reporting functionality
     elif st.session_state.current_page == "settings":
-        show_settings_page()
+        show_settings_page()       # Configuration and help information
     else:
-        # Default to dashboard
+        # Fallback for invalid page states (should not normally occur)
         st.session_state.current_page = "dashboard"
         show_dashboard_page()
 
+# Application initialization - only run when script is executed directly
 if __name__ == "__main__":
     main()
