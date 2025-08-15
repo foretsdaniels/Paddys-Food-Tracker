@@ -145,10 +145,178 @@ For testing outside Replit environment:
 2. No additional configuration required
 3. Automatic authentication for logged-in users
 
-### Local Development
-1. Install dependencies: `pip install streamlit pandas fpdf2 xlsxwriter`
-2. Run: `streamlit run app.py --server.port 5000`
-3. Use demo accounts for authentication
+### Local Installation (Ubuntu/Linux)
+
+#### Prerequisites
+- Ubuntu 20.04+ or similar Linux distribution
+- Python 3.8+ and pip
+
+#### Quick Setup
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+sudo apt install python3 python3-pip python3-venv git -y
+
+# Create project directory
+mkdir ~/restaurant-tracker && cd ~/restaurant-tracker
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install streamlit pandas fpdf2 xlsxwriter openpyxl
+
+# Download application files (copy app.py and sample CSV files)
+
+# Create Streamlit configuration
+mkdir .streamlit
+cat > .streamlit/config.toml << EOF
+[server]
+headless = true
+address = "0.0.0.0"
+port = 5000
+
+[theme]
+primaryColor = "#ff6b6b"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+EOF
+
+# Run application
+streamlit run app.py --server.port 5000
+```
+
+#### Production Deployment
+
+**Create Systemd Service:**
+```bash
+sudo nano /etc/systemd/system/restaurant-tracker.service
+```
+
+Add service configuration:
+```ini
+[Unit]
+Description=Restaurant Ingredient Tracker
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/restaurant-tracker
+Environment=PATH=/home/ubuntu/restaurant-tracker/venv/bin
+ExecStart=/home/ubuntu/restaurant-tracker/venv/bin/streamlit run app.py --server.port 5000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Enable and start service:**
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable restaurant-tracker
+sudo systemctl start restaurant-tracker
+sudo systemctl status restaurant-tracker
+```
+
+**Configure firewall:**
+```bash
+sudo ufw allow 5000/tcp
+sudo ufw enable
+```
+
+#### Optional: Nginx Reverse Proxy
+```bash
+# Install Nginx
+sudo apt install nginx -y
+
+# Configure virtual host
+sudo nano /etc/nginx/sites-available/restaurant-tracker
+```
+
+Add configuration:
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Enable site:
+```bash
+sudo ln -s /etc/nginx/sites-available/restaurant-tracker /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl restart nginx
+```
+
+### Windows Installation
+
+#### Using Command Prompt/PowerShell:
+```cmd
+# Install Python from python.org if not installed
+
+# Create project directory
+mkdir restaurant-tracker
+cd restaurant-tracker
+
+# Create virtual environment
+python -m venv venv
+venv\Scripts\activate
+
+# Install dependencies
+pip install streamlit pandas fpdf2 xlsxwriter openpyxl
+
+# Create .streamlit directory and config
+mkdir .streamlit
+echo [server] > .streamlit\config.toml
+echo headless = true >> .streamlit\config.toml
+echo address = "0.0.0.0" >> .streamlit\config.toml
+echo port = 5000 >> .streamlit\config.toml
+
+# Run application
+streamlit run app.py --server.port 5000
+```
+
+### macOS Installation
+
+```bash
+# Install Homebrew if not installed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Python
+brew install python
+
+# Create project directory
+mkdir ~/restaurant-tracker && cd ~/restaurant-tracker
+
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install streamlit pandas fpdf2 xlsxwriter openpyxl
+
+# Create Streamlit configuration
+mkdir .streamlit
+cat > .streamlit/config.toml << EOF
+[server]
+headless = true
+address = "0.0.0.0"
+port = 5000
+EOF
+
+# Run application
+streamlit run app.py --server.port 5000
+```
 
 ## 📊 Key Metrics
 
@@ -180,9 +348,67 @@ The application tracks and analyzes:
 - Added visual highlighting for problem identification
 - Implemented secure logout with session cleanup
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**Port already in use:**
+```bash
+# Find process using port 5000
+sudo lsof -i :5000
+# Kill process if needed
+sudo kill <PID>
+```
+
+**Permission issues:**
+```bash
+# Fix ownership (Linux)
+sudo chown -R $USER:$USER ~/restaurant-tracker
+```
+
+**Virtual environment issues:**
+```bash
+# Recreate virtual environment
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
+pip install streamlit pandas fpdf2 xlsxwriter openpyxl
+```
+
+**Service not starting (Linux):**
+```bash
+# Check service logs
+sudo journalctl -u restaurant-tracker -f
+# Restart service
+sudo systemctl restart restaurant-tracker
+```
+
+### Authentication Notes
+- **Replit Environment**: Automatic authentication via Replit Auth
+- **Local Installation**: Uses demo mode with test accounts
+- **Demo Accounts**: admin/admin123, manager/manager456, staff/staff789
+
+### Maintenance Commands (Linux Production)
+```bash
+# Service management
+sudo systemctl start restaurant-tracker
+sudo systemctl stop restaurant-tracker
+sudo systemctl restart restaurant-tracker
+sudo systemctl status restaurant-tracker
+
+# View logs
+sudo journalctl -u restaurant-tracker -f
+```
+
 ## 🤝 Support
 
-This application uses Replit's built-in authentication system and is optimized for the Replit platform. For authentication issues, ensure you're logged into Replit and refresh the application if needed.
+- **Replit Users**: Authentication is automatic when logged into Replit
+- **Local Users**: Use demo accounts for testing and development
+- **Issues**: Check troubleshooting section above for common solutions
+- **Performance**: Minimum 2GB RAM, 4GB recommended for production
+
+For detailed deployment instructions, see `DEPLOYMENT.md` in the project repository.
 
 ---
 
