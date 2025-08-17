@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Restaurant Ingredient Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card mt-5">
+            <div class="card-header text-center">
+                <h3><i class="fas fa-utensils"></i> Restaurant Ingredient Tracker</h3>
+                <p class="text-muted">Flask Edition</p>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Login</button>
+                </form>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <h6>Demo Accounts:</h6>
+                    <small class="text-muted d-block">admin / admin123</small>
+                    <small class="text-muted d-block">manager / manager456</small>
+                    <small class="text-muted d-block">staff / staff789</small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-rocket"></i> Key Features</h5>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success"></i> Track ingredient usage and waste</li>
+                    <li><i class="fas fa-check text-success"></i> Calculate shrinkage and costs</li>
+                    <li><i class="fas fa-check text-success"></i> Generate PDF and Excel reports</li>
+                    <li><i class="fas fa-check text-success"></i> Real-time analytics and alerts</li>
+                    <li><i class="fas fa-check text-success"></i> Better hosting compatibility</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Data - Restaurant Ingredient Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-upload"></i> Upload CSV Files</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Upload Required Files</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ingredient_info" class="form-label">
+                                    <i class="fas fa-list"></i> Ingredient Information
+                                </label>
+                                <input type="file" class="form-control" id="ingredient_info" name="ingredient_info" accept=".csv" required>
+                                <div class="form-text">CSV with columns: Ingredient, Unit Cost</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="input_stock" class="form-label">
+                                    <i class="fas fa-box"></i> Input Stock
+                                </label>
+                                <input type="file" class="form-control" id="input_stock" name="input_stock" accept=".csv" required>
+                                <div class="form-text">CSV with columns: Ingredient, Received Qty</div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="usage" class="form-label">
+                                    <i class="fas fa-utensils"></i> Usage Data
+                                </label>
+                                <input type="file" class="form-control" id="usage" name="usage" accept=".csv" required>
+                                <div class="form-text">CSV with columns: Ingredient, Used Qty</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="waste" class="form-label">
+                                    <i class="fas fa-trash"></i> Waste Data
+                                </label>
+                                <input type="file" class="form-control" id="waste" name="waste" accept=".csv" required>
+                                <div class="form-text">CSV with columns: Ingredient, Wasted Qty</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-upload"></i> Process Files
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> File Requirements</h5>
+            </div>
+            <div class="card-body">
+                <h6>CSV Format Guidelines:</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-check text-success"></i> Files must be in CSV format</li>
+                    <li><i class="fas fa-check text-success"></i> First row should contain column headers</li>
+                    <li><i class="fas fa-check text-success"></i> Ingredient names should be consistent across files</li>
+                    <li><i class="fas fa-check text-success"></i> Numeric values should not contain currency symbols</li>
+                </ul>
+                
+                <div class="alert alert-info">
+                    <small>
+                        <strong>Tip:</strong> Use the same ingredient names across all files for accurate matching.
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="fas fa-download"></i> Sample Files</h5>
+            </div>
+            <div class="card-body">
+                <p>Don't have CSV files ready? Try our sample data:</p>
+                <a href="{{ url_for('sample_data') }}" class="btn btn-outline-info btn-sm">
+                    <i class="fas fa-database"></i> Load Sample Data
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// File upload validation
+document.querySelectorAll('input[type="file"]').forEach(function(input) {
+    input.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file && !file.name.toLowerCase().endsWith('.csv')) {
+            alert('Please select a CSV file');
+            this.value = '';
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Restaurant Ingredient Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2"><i class="fas fa-chart-line"></i> Analytics</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('export_pdf') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-file-pdf"></i> PDF
+            </a>
+            <a href="{{ url_for('export_excel') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-file-excel"></i> Excel
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-primary">${{ "%.2f"|format(summary_stats.total_cost) }}</h5>
+                <p class="card-text">Total Cost</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-danger">${{ "%.2f"|format(summary_stats.total_shrinkage_cost) }}</h5>
+                <p class="card-text">Shrinkage Cost</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-warning">${{ "%.2f"|format(summary_stats.total_waste_cost) }}</h5>
+                <p class="card-text">Waste Cost</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title text-info">{{ summary_stats.total_ingredients }}</h5>
+                <p class="card-text">Total Ingredients</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts -->
+{% if alerts %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4><i class="fas fa-exclamation-triangle"></i> Alerts</h4>
+        {% for alert in alerts %}
+        <div class="alert alert-{{ 'danger' if alert.severity == 'critical' else 'warning' }} alert-dismissible fade show">
+            <strong>{{ alert.type.title().replace('_', ' ') }}:</strong> {{ alert.message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Filters and Controls -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('analytics', filter='all') }}" 
+               class="btn btn-{{ 'primary' if current_filter == 'all' else 'outline-primary' }}">
+                All Items
+            </a>
+            <a href="{{ url_for('analytics', filter='high_shrinkage') }}" 
+               class="btn btn-{{ 'danger' if current_filter == 'high_shrinkage' else 'outline-danger' }}">
+                High Shrinkage
+            </a>
+            <a href="{{ url_for('analytics', filter='high_waste') }}" 
+               class="btn btn-{{ 'warning' if current_filter == 'high_waste' else 'outline-warning' }}">
+                High Waste
+            </a>
+            <a href="{{ url_for('analytics', filter='missing_stock') }}" 
+               class="btn btn-{{ 'info' if current_filter == 'missing_stock' else 'outline-info' }}">
+                Missing Stock
+            </a>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="dropdown">
+            <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                Sort by: {{ current_sort.title().replace('_', ' ') }}
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="{{ url_for('analytics', filter=current_filter, sort='shrinkage_cost', order='desc') }}">Shrinkage Cost (High to Low)</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('analytics', filter=current_filter, sort='waste_cost', order='desc') }}">Waste Cost (High to Low)</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('analytics', filter=current_filter, sort='total_cost', order='desc') }}">Total Cost (High to Low)</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('analytics', filter=current_filter, sort='ingredient', order='asc') }}">Ingredient Name (A to Z)</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Data Table -->
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Ingredient</th>
+                <th>Unit Cost</th>
+                <th>Received</th>
+                <th>Used</th>
+                <th>Wasted</th>
+                <th>Shrinkage</th>
+                <th>Waste %</th>
+                <th>Shrinkage Cost</th>
+                <th>Total Cost</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in results %}
+            <tr class="{% if item['Shrinkage Cost'] > 50 %}high-shrinkage{% elif item['Waste %'] > 15 %}high-waste{% elif item['Received Qty'] == 0 %}missing-stock{% endif %}">
+                <td><strong>{{ item['Ingredient'] }}</strong></td>
+                <td>${{ "%.2f"|format(item['Unit Cost']) }}</td>
+                <td>{{ "%.1f"|format(item['Received Qty']) }}</td>
+                <td>{{ "%.1f"|format(item['Used Qty']) }}</td>
+                <td>{{ "%.1f"|format(item['Wasted Qty']) }}</td>
+                <td>{{ "%.1f"|format(item['Shrinkage']) }}</td>
+                <td>{{ "%.1f"|format(item['Waste %']) }}%</td>
+                <td>${{ "%.2f"|format(item['Shrinkage Cost']) }}</td>
+                <td>${{ "%.2f"|format(item['Total Cost']) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Insights -->
+{% if insights %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-lightbulb"></i> Key Insights</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    {% for insight in insights %}
+                    <li><i class="fas fa-arrow-right text-primary"></i> {{ insight }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Legend -->
+<div class="row mt-3">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h6>Color Legend:</h6>
+                <span class="badge" style="background-color: #f8d7da; color: black;">High Shrinkage (>$50)</span>
+                <span class="badge" style="background-color: #fff3cd; color: black;">High Waste (>15%)</span>
+                <span class="badge" style="background-color: #d1ecf1; color: black;">Missing Stock</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
