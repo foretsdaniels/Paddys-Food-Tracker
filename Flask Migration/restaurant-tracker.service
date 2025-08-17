@@ -1,0 +1,55 @@
+[Unit]
+Description=Restaurant Ingredient Tracker Flask Application
+Documentation=file:///opt/restaurant-tracker/README.md
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=restaurant-tracker
+Group=restaurant-tracker
+WorkingDirectory=/opt/restaurant-tracker
+Environment=PATH=/opt/restaurant-tracker/venv/bin
+EnvironmentFile=/opt/restaurant-tracker/.env
+
+# Main process
+ExecStart=/opt/restaurant-tracker/venv/bin/gunicorn \
+    --bind 0.0.0.0:5000 \
+    --workers 2 \
+    --worker-class sync \
+    --timeout 120 \
+    --keepalive 5 \
+    --max-requests 1000 \
+    --max-requests-jitter 100 \
+    --preload \
+    --access-logfile /opt/restaurant-tracker/logs/access.log \
+    --error-logfile /opt/restaurant-tracker/logs/error.log \
+    --log-level info \
+    app:app
+
+# Reload configuration
+ExecReload=/bin/kill -s HUP $MAINPID
+
+# Restart policy
+Restart=always
+RestartSec=3
+RestartForceExitStatus=3
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/restaurant-tracker/uploads /opt/restaurant-tracker/exports /opt/restaurant-tracker/logs
+ProtectHome=true
+
+# Process management
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
