@@ -4,22 +4,18 @@
 # This configuration is specifically for CPUs with only SSE4a support
 # (no SSE4.1/SSE4.2/AVX) to avoid "Illegal instruction (core dumped)" errors
 
-version: '3.3'
+version: '2.2'
 
 services:
   restaurant-tracker:
     build:
       context: ..
       dockerfile: Docker Deployment/Dockerfile.cpu-compatible
-      target: production
       args:
         APP_USER: streamlit
         APP_UID: 1000
         APP_GID: 1000
     container_name: restaurant-tracker-cpu-compatible
-    
-    # Platform specification for compatibility
-    platform: linux/amd64
     
     # Environment configuration
     environment:
@@ -65,15 +61,13 @@ services:
       interval: 30s
       timeout: 15s
       retries: 5
-      start_period: 120s  # Longer startup time for CPU-compatible build
     
     # Restart policy
     restart: unless-stopped
     
-    # Resource limits - more generous for CPU compilation (version 3.3 compatible)
-    mem_limit: 2g
-    memswap_limit: 2g
-    cpu_count: 2
+    # Resource limits - more generous for CPU compilation (version 2.2 compatible)
+    mem_limit: 2147483648  # 2GB in bytes
+    memswap_limit: 2147483648
     
     # Logging configuration
     logging:

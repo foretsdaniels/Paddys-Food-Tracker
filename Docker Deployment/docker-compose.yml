@@ -12,7 +12,7 @@
 # - Health checks and restart policies
 # - Development and production profiles
 
-version: '3.3'
+version: '2.2'
 
 # ============================================================================
 # Services Configuration
@@ -26,15 +26,11 @@ services:
     build:
       context: ..
       dockerfile: Docker Deployment/Dockerfile
-      target: production
       args:
         APP_USER: streamlit
         APP_UID: 1000
         APP_GID: 1000
     container_name: restaurant-tracker-app
-    
-    # Platform specification to avoid architecture issues
-    platform: linux/amd64
     
     # Environment configuration
     environment:
@@ -98,15 +94,13 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
     
     # Restart policy
     restart: unless-stopped
     
-    # Resource limits (version 3.3 compatible)
-    mem_limit: 512m
-    memswap_limit: 512m
-    cpu_count: 1
+    # Resource limits (version 2.2 compatible)
+    mem_limit: 536870912  # 512MB in bytes
+    memswap_limit: 536870912
     
     # Network configuration
     networks:
@@ -160,11 +154,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 30s
     
-    # Resource limits (version 3.3 compatible)
-    mem_limit: 128m
-    memswap_limit: 128m
+    # Resource limits (version 2.2 compatible)
+    mem_limit: 134217728  # 128MB in bytes
+    memswap_limit: 134217728
     
     # Restart policy
     restart: unless-stopped
