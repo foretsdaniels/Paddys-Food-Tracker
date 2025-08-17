@@ -1,352 +1,429 @@
-# Ubuntu Deployment Guide
+# Restaurant Ingredient Tracker - Master Deployment Guide
 
-Complete guide for deploying the Restaurant Ingredient Tracker on Ubuntu from scratch.
+> **Complete deployment documentation for all platforms and environments**
 
-## Prerequisites
+This is the master deployment guide covering all hosting options for the Restaurant Ingredient Tracker application. Choose the deployment method that best fits your infrastructure and requirements.
 
-Fresh Ubuntu 20.04+ installation with sudo access.
+## 📖 Documentation Navigation
 
-## Step 1: System Update and Dependencies
+### Core Documentation
+- **[Main README](README.md)** - Project overview and implementation comparison
+- **[Project Architecture](replit.md)** - Technical specifications and recent changes
 
+### Implementation-Specific Guides
+- **[Flask Implementation](Flask%20Migration/README.md)** - Complete Flask production implementation
+- **[Flask Deployment Guide](Flask%20Migration/DEPLOYMENT.md)** - Flask-specific production deployment
+- **[System Service Setup](Flask%20Migration/SYSTEMD_SERVICE.md)** - Linux systemd service configuration
+
+### Containerized Deployment
+- **[Docker Deployment Guide](Docker%20Deployment/README.md)** - Containerized deployment options
+- **[Docker Troubleshooting](Docker%20Deployment/TROUBLESHOOTING.md)** - Docker-specific issues and solutions
+
+## 🏗️ Architecture & Implementation Choice
+
+The Restaurant Ingredient Tracker provides **two complete implementations**:
+
+### Streamlit Edition (Development/Testing)
+- **Best For**: Development, testing, Replit hosting
+- **Location**: Root directory files (`app.py`, etc.)
+- **Strengths**: Rapid development, built-in UI components
+- **Limitations**: Limited hosting options, WebSocket dependencies
+
+### Flask Edition (Production/Universal) ⭐ **RECOMMENDED**
+- **Best For**: Production, any hosting platform
+- **Location**: [`Flask Migration/`](Flask%20Migration/) directory  
+- **Strengths**: Universal compatibility, better performance, standard protocols
+- **Documentation**: [Flask Implementation Guide](Flask%20Migration/README.md)
+
+> **💡 Production Choice**: For production deployments, we strongly recommend the Flask edition due to its universal hosting compatibility and enterprise-grade features.
+
+## 🚀 Quick Start by Platform
+
+### 🖥️ Local Development
+
+#### Streamlit (Quick Testing)
 ```bash
-# Update system packages
-sudo apt update && sudo apt upgrade -y
-
-# Install Python 3 and pip
-sudo apt install python3 python3-pip python3-venv git curl -y
-
-# Verify Python installation
-python3 --version
-pip3 --version
+# Install and run Streamlit version
+pip install streamlit pandas fpdf2 xlsxwriter
+streamlit run app.py
+# Access: http://localhost:8501
 ```
 
-## Step 2: Create Application Directory
-
+#### Flask (Production Testing)
 ```bash
-# Create app directory
-mkdir ~/restaurant-tracker
-cd ~/restaurant-tracker
-
-# Create Python virtual environment
-python3 -m venv venv
-source venv/bin/activate
+# Setup and run Flask version
+cd "Flask Migration"
+chmod +x setup.sh start.sh
+./setup.sh && ./start.sh
+# Access: http://localhost:5000
 ```
 
-## Step 3: Install Dependencies
+### 🐧 Linux VPS/Dedicated Server (Recommended)
 
+#### Automated Flask Production Deployment
 ```bash
-# Install required Python packages
-pip install streamlit pandas fpdf2 xlsxwriter openpyxl
-
-# Verify installation
-streamlit --version
+cd "Flask Migration"
+sudo ./deploy.sh  # Complete automated setup
 ```
 
-## Step 4: Download Application Files
+**What this includes:**
+- System user and directory creation
+- Python virtual environment setup
+- Systemd service installation
+- Nginx reverse proxy configuration
+- Firewall setup and security hardening
+- SSL/HTTPS preparation
 
-### Option A: From Repository
+**Management:**
 ```bash
-# If you have the code in a repository
-git clone <your-repository-url> .
-```
-
-### Option B: Manual File Creation
-Create the following files in your project directory:
-
-1. **Create app.py** - Copy the complete application code
-2. **Create .streamlit/config.toml**:
-```toml
-[server]
-headless = true
-address = "0.0.0.0"
-port = 5000
-
-[theme]
-primaryColor = "#ff6b6b"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f0f2f6"
-textColor = "#262730"
-```
-
-3. **Create sample data files** (optional):
-   - sample_ingredient_info.csv
-   - sample_input_stock.csv
-   - sample_usage.csv
-   - sample_waste.csv
-
-## Step 5: Test Local Deployment
-
-```bash
-# Ensure virtual environment is active
-source venv/bin/activate
-
-# Run the application
-streamlit run app.py --server.port 5000
-```
-
-Access at: http://localhost:5000
-
-## Step 6: Production Deployment Options
-
-### Option A: Simple Background Process
-
-```bash
-# Run in background with nohup
-nohup streamlit run app.py --server.port 5000 > streamlit.log 2>&1 &
-
-# Check if running
-ps aux | grep streamlit
-```
-
-### Option B: Using Screen Session
-
-```bash
-# Install screen
-sudo apt install screen -y
-
-# Start screen session
-screen -S restaurant-tracker
-
-# Run application in screen
-streamlit run app.py --server.port 5000
-
-# Detach: Ctrl+A, then D
-# Reattach: screen -r restaurant-tracker
-```
-
-### Option C: Systemd Service (Recommended)
-
-```bash
-# Create service file
-sudo nano /etc/systemd/system/restaurant-tracker.service
-```
-
-Add the following content:
-```ini
-[Unit]
-Description=Restaurant Ingredient Tracker
-After=network.target
-
-[Service]
-Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/restaurant-tracker
-Environment=PATH=/home/ubuntu/restaurant-tracker/venv/bin
-ExecStart=/home/ubuntu/restaurant-tracker/venv/bin/streamlit run app.py --server.port 5000
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start the service:
-```bash
-# Reload systemd and enable service
-sudo systemctl daemon-reload
-sudo systemctl enable restaurant-tracker
+# Service control
 sudo systemctl start restaurant-tracker
-
-# Check status
 sudo systemctl status restaurant-tracker
 
-# View logs
-sudo journalctl -u restaurant-tracker -f
+# Health monitoring
+./service-manager.sh health
+./service-manager.sh logs
 ```
 
-## Step 7: Firewall Configuration
+📖 **See**: [Flask Deployment Guide](Flask%20Migration/DEPLOYMENT.md) | [System Service Guide](Flask%20Migration/SYSTEMD_SERVICE.md)
 
+### 🐳 Docker Deployment
+
+#### Standard Docker (Modern Systems)
 ```bash
-# Allow port 5000 through firewall
-sudo ufw allow 5000/tcp
-
-# Enable firewall if not already enabled
-sudo ufw enable
-
-# Check firewall status
-sudo ufw status
+cd "Docker Deployment"
+docker-compose up --build -d
 ```
 
-## Step 8: Reverse Proxy with Nginx (Optional)
-
-For production with custom domain:
-
+#### CPU-Compatible Docker (Older Systems)
 ```bash
-# Install Nginx
-sudo apt install nginx -y
-
-# Create nginx configuration
-sudo nano /etc/nginx/sites-available/restaurant-tracker
+cd "Docker Deployment"
+./run-cpu-compatible-legacy.sh
 ```
 
-Add configuration:
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
+📖 **See**: [Docker Deployment Guide](Docker%20Deployment/README.md) | [Docker Troubleshooting](Docker%20Deployment/TROUBLESHOOTING.md)
 
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
+### ☁️ Cloud Platform Deployment
 
-Enable the site:
+#### Heroku (Flask)
 ```bash
-# Enable site
-sudo ln -s /etc/nginx/sites-available/restaurant-tracker /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl restart nginx
+cd "Flask Migration"
+# Procfile included
+heroku create your-app-name
+git add . && git commit -m "Deploy"
+git push heroku main
 ```
 
-## Step 9: SSL Certificate (Optional)
+#### DigitalOcean App Platform (Flask)
+1. Connect Git repository
+2. **Root Directory**: `Flask Migration`
+3. **Build Command**: `pip install -r requirements.txt`
+4. **Run Command**: `gunicorn --bind 0.0.0.0:$PORT app:app`
+5. **Environment Variables**: Set `SECRET_KEY`
 
+#### AWS Elastic Beanstalk (Flask)
 ```bash
-# Install Certbot
-sudo apt install snapd -y
-sudo snap install core; sudo snap refresh core
-sudo snap install --classic certbot
-
-# Create certificate
-sudo certbot --nginx -d your-domain.com
+cd "Flask Migration"
+eb init
+eb create restaurant-tracker-prod
+eb deploy
 ```
 
-## Troubleshooting
+### 🌐 Shared Hosting (cPanel/WHM)
 
-### Common Issues
+#### Flask on Shared Hosting
+1. **Upload Files**: Use File Manager to upload `Flask Migration` contents
+2. **Python Environment**: Create virtual environment in hosting control panel
+3. **Dependencies**: Install from `requirements.txt` via pip interface
+4. **WSGI Setup**: Point to `app.py` as application entry point
+5. **Environment**: Set `SECRET_KEY` in hosting environment variables
 
-1. **Port already in use**:
+📖 **See**: [Flask Implementation Guide](Flask%20Migration/README.md)
+
+## 📊 Platform Compatibility Matrix
+
+| Platform | Streamlit | Flask | Docker | Recommendation |
+|----------|-----------|-------|--------|----------------|
+| **Replit** | ✅ Native | ✅ Compatible | ⚠️ Limited | Use Streamlit |
+| **Heroku** | ⚠️ Limited | ✅ Excellent | ✅ Good | Use Flask |
+| **DigitalOcean** | ⚠️ Complex | ✅ Simple | ✅ Excellent | Use Flask |
+| **AWS/GCP** | ⚠️ Complex | ✅ Native | ✅ Excellent | Use Flask |
+| **Shared Hosting** | ❌ No support | ✅ Full support | ❌ No support | Use Flask |
+| **VPS/Dedicated** | ⚠️ Limited | ✅ Full control | ✅ Excellent | Use Flask |
+| **Docker Platforms** | ⚠️ Complex | ✅ Compatible | ✅ Native | Use Docker + Flask |
+
+## 🔧 Deployment Features Comparison
+
+| Feature | Streamlit | Flask | Docker |
+|---------|-----------|-------|--------|
+| **Startup Time** | 30+ seconds | < 5 seconds | 10-45 seconds |
+| **Memory Usage** | 200+ MB | < 100 MB | 150-200 MB |
+| **Concurrent Users** | Limited | Excellent | Good |
+| **Hosting Options** | Limited | Universal | Container platforms |
+| **Management Tools** | Basic | Enterprise | Container tools |
+| **Monitoring** | Limited | Full monitoring | Container monitoring |
+| **SSL/HTTPS** | Complex | Built-in support | Nginx integration |
+| **Custom Domains** | Limited | Full support | Full support |
+| **Auto-scaling** | No | Manual/automatic | Container orchestration |
+
+## 🛠️ Management and Monitoring
+
+### Flask Service Management
 ```bash
-# Find process using port 5000
-sudo lsof -i :5000
-# Kill process if needed
-sudo kill <PID>
+cd "Flask Migration"
+
+# Service status and health
+./service-manager.sh status
+./service-manager.sh health
+
+# Log monitoring
+./service-manager.sh logs
+./service-manager.sh follow
+
+# Service control (requires sudo)
+sudo ./service-manager.sh start
+sudo ./service-manager.sh restart
+sudo ./service-manager.sh stop
 ```
 
-2. **Permission issues**:
-```bash
-# Fix ownership
-sudo chown -R $USER:$USER ~/restaurant-tracker
-```
-
-3. **Virtual environment issues**:
-```bash
-# Recreate virtual environment
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate
-pip install streamlit pandas fpdf2 xlsxwriter openpyxl
-```
-
-4. **Service not starting**:
-```bash
-# Check service logs
-sudo journalctl -u restaurant-tracker -f
-# Restart service
-sudo systemctl restart restaurant-tracker
-```
-
-## Maintenance Commands
-
-```bash
-# Start service
-sudo systemctl start restaurant-tracker
-
-# Stop service
-sudo systemctl stop restaurant-tracker
-
-# Restart service
-sudo systemctl restart restaurant-tracker
-
-# Check service status
-sudo systemctl status restaurant-tracker
-
-# View real-time logs
-sudo journalctl -u restaurant-tracker -f
-
-# Update application (after code changes)
-sudo systemctl stop restaurant-tracker
-# Update files
-sudo systemctl start restaurant-tracker
-```
-
-## Security Considerations
-
-1. **Firewall**: Only open necessary ports
-2. **User permissions**: Run service as non-root user
-3. **Updates**: Keep system and packages updated
-4. **SSL**: Use HTTPS for production deployments
-5. **Access**: Limit access to known IP ranges if needed
-
-## Environment Variables
-
-For Replit Auth features, the app will automatically fall back to demo mode on Ubuntu since Replit environment variables won't be available.
-
-Demo accounts available:
-- admin / admin123
-- manager / manager456  
-- staff / staff789
-
-## Performance Optimization
-
-1. **Server specs**: 2GB RAM minimum, 4GB recommended
-2. **Storage**: 10GB free space minimum
-3. **Network**: Stable internet connection for package updates
-4. **Monitoring**: Consider setting up monitoring for production use
-
-## Backup Strategy
-
-```bash
-# Create backup script
-nano ~/backup-tracker.sh
-```
-
-Add:
-```bash
-#!/bin/bash
-DATE=$(date +%Y%m%d_%H%M%S)
-tar -czf ~/restaurant-tracker-backup-$DATE.tar.gz ~/restaurant-tracker
-```
-
-Make executable and run:
-```bash
-chmod +x ~/backup-tracker.sh
-./backup-tracker.sh
-```
-
-Your Restaurant Ingredient Tracker should now be fully deployed and accessible on Ubuntu!
-
-## Docker Deployment (Alternative)
-
-For containerized deployment, see the `Docker Deployment/` directory which includes:
-
-### Quick Docker Start
+### Docker Management
 ```bash
 cd "Docker Deployment"
 
-# For standard systems
-./run-fixed.sh
+# Container status
+docker-compose ps
+docker-compose logs -f
 
-# For CPUs with only SSE4a support (older AMD processors)
-./run-cpu-compatible.sh
+# Resource monitoring
+docker stats
+
+# Container control
+docker-compose restart
+docker-compose stop
 ```
 
-### Docker Configurations Available
-- **Standard**: `docker-compose.yml` - Full production setup with Redis and Nginx
-- **Simplified**: `docker-compose.simple.yml` - Streamlit only, no dependencies
-- **CPU-Compatible**: `docker-compose.cpu-compatible.yml` - For SSE4a-only processors
+### System Monitoring
+```bash
+# Resource usage
+htop
+free -h
+df -h
 
-### CPU Compatibility Notes
-If you encounter "Illegal instruction (core dumped)" errors, your CPU likely only supports SSE4a (not SSE4.1/SSE4.2/AVX). Use the CPU-compatible configuration which:
-- Compiles NumPy and Pandas from source
-- Uses older package versions known to work on SSE4a-only CPUs
-- Takes 10-15 minutes to build but guarantees compatibility
+# Network monitoring
+sudo netstat -tlnp | grep :5000
+sudo lsof -i :5000
 
-### Docker Benefits
-- Consistent environment across different systems
-- Automated dependency management
-- Production-ready with health checks and restart policies
-- Easy scaling and deployment options
+# Application health
+curl http://localhost:5000/health
+```
+
+## 🔒 Security Best Practices
+
+### Production Security Checklist
+
+#### Application Security
+- [ ] Strong `SECRET_KEY` in environment variables
+- [ ] Input validation for CSV uploads
+- [ ] File upload size limits
+- [ ] Secure session management
+- [ ] CSRF protection enabled
+
+#### System Security
+- [ ] Non-privileged service user
+- [ ] Firewall configured (ports 22, 80, 443 only)
+- [ ] SSL/HTTPS certificates installed
+- [ ] Regular security updates
+- [ ] Log monitoring and rotation
+
+#### Network Security
+- [ ] Reverse proxy (Nginx) configured
+- [ ] Security headers enabled
+- [ ] Rate limiting implemented
+- [ ] DDoS protection considered
+
+### Security Implementation
+
+#### Flask Security (Automated)
+```bash
+# Automated security setup
+cd "Flask Migration"
+sudo ./deploy.sh  # Includes firewall, user creation, file permissions
+```
+
+#### Manual Security Hardening
+```bash
+# Firewall setup
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow ssh
+sudo ufw allow 80
+sudo ufw allow 443
+sudo ufw enable
+
+# SSL certificate (Let's Encrypt)
+sudo certbot --nginx -d your-domain.com
+```
+
+## 📈 Performance Optimization
+
+### Application Performance
+
+#### Flask Performance Tuning
+```bash
+# Adjust worker processes (CPU cores × 2 + 1)
+sudo nano /etc/systemd/system/restaurant-tracker.service
+# Modify: --workers 4
+
+# Enable caching
+# Add Redis for session storage and caching
+```
+
+#### Resource Monitoring
+```bash
+# Monitor Flask application
+./service-manager.sh health
+
+# System resource monitoring
+htop
+iotop
+sudo systemctl status restaurant-tracker
+```
+
+### Infrastructure Scaling
+
+#### Vertical Scaling
+- **CPU**: Increase server CPU cores
+- **Memory**: Add RAM for larger datasets
+- **Storage**: Use SSD for better I/O performance
+
+#### Horizontal Scaling
+- **Load Balancer**: Nginx or HAProxy for multiple instances
+- **Database**: External PostgreSQL for data persistence
+- **File Storage**: Shared storage (NFS, cloud storage)
+- **Session Storage**: Redis for session sharing
+
+## 🔍 Troubleshooting by Platform
+
+### General Issues
+
+#### Port Conflicts
+```bash
+# Find process using port 5000
+sudo lsof -i :5000
+sudo kill -9 <PID>
+
+# Or use different port
+export PORT=5001
+```
+
+#### Permission Issues
+```bash
+# Flask permissions
+sudo chown -R restaurant-tracker:restaurant-tracker /opt/restaurant-tracker
+sudo chmod +x /opt/restaurant-tracker/start.sh
+
+# File upload permissions
+chmod 755 uploads/ exports/
+```
+
+### Platform-Specific Troubleshooting
+
+#### Flask Service Issues
+```bash
+# Service logs
+sudo journalctl -u restaurant-tracker -f
+
+# Application logs
+tail -f /opt/restaurant-tracker/logs/error.log
+
+# Restart service
+sudo systemctl restart restaurant-tracker
+```
+
+#### Docker Issues
+```bash
+# Container logs
+docker-compose logs -f
+
+# CPU compatibility issues
+./run-cpu-compatible-legacy.sh
+
+# Rebuild containers
+docker-compose build --no-cache
+```
+
+📖 **See**: [Docker Troubleshooting Guide](Docker%20Deployment/TROUBLESHOOTING.md)
+
+#### Cloud Platform Issues
+- **Heroku**: Check build logs and runtime logs
+- **DigitalOcean**: Verify build/run commands and environment variables
+- **AWS**: Check Elastic Beanstalk logs and health status
+
+## 🔄 Updates and Maintenance
+
+### Regular Maintenance Schedule
+
+#### Weekly Tasks
+- Review application logs for errors
+- Monitor system resource usage
+- Check SSL certificate expiration
+- Verify backup functionality
+
+#### Monthly Tasks
+- Update system packages
+- Update Python dependencies
+- Review security logs
+- Performance monitoring review
+
+#### Quarterly Tasks
+- Full system backup test
+- Security audit
+- Disaster recovery test
+- Performance optimization review
+
+### Update Procedures
+
+#### Flask Application Updates
+```bash
+# Backup current version
+sudo cp -r /opt/restaurant-tracker /opt/restaurant-tracker-backup-$(date +%Y%m%d)
+
+# Update application
+cd "Flask Migration"
+sudo ./service-manager.sh update
+
+# Verify update
+./service-manager.sh health
+```
+
+#### Docker Updates
+```bash
+cd "Docker Deployment"
+docker-compose pull
+docker-compose up --build -d
+docker image prune -f
+```
+
+## 🆘 Support and Resources
+
+### Documentation Quick Links
+- **[Flask Production Guide](Flask%20Migration/DEPLOYMENT.md)** - Detailed Flask deployment
+- **[System Service Management](Flask%20Migration/SYSTEMD_SERVICE.md)** - Linux service configuration
+- **[Docker Deployment](Docker%20Deployment/README.md)** - Container deployment
+- **[Troubleshooting](Docker%20Deployment/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Project Architecture](replit.md)** - Technical specifications
+
+### Management Scripts
+All deployment methods include management tools:
+- **Flask**: `service-manager.sh` for comprehensive service management
+- **Docker**: Standard `docker-compose` commands with custom scripts
+- **Development**: `setup.sh` and `start.sh` for quick environment setup
+
+### Community and Issues
+- Check [recent changes](replit.md) for latest updates and known issues
+- Review platform-specific documentation for detailed troubleshooting
+- Use included health check tools for debugging
+
+---
+
+> **🎯 Production Recommendation**: For production deployments, use the [Flask implementation](Flask%20Migration/README.md) with the [automated deployment script](Flask%20Migration/DEPLOYMENT.md) for enterprise-grade reliability and universal hosting compatibility.

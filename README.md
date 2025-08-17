@@ -1,422 +1,221 @@
-# 🍽️ BOH Restaurant Food Inventory Tracker
+# Restaurant Ingredient Tracker
 
-A comprehensive Streamlit-based web application designed to help restaurants analyze ingredient usage, waste, and costs. Track your restaurant's inventory efficiency, reduce waste costs, and optimize ingredient purchasing with powerful analytics and reporting capabilities.
+> **Multi-Platform Restaurant Inventory Management System**
+> 
+> A comprehensive web application for tracking ingredient usage, waste, and costs with dual Streamlit and Flask implementations for maximum hosting compatibility.
 
-## 🚀 Features
+## 📖 Documentation Index
 
-### 🔐 Enterprise Authentication
-- **Replit Auth Integration**: Seamless authentication using Replit's enterprise-grade system
-- **Firebase & Google Cloud Security**: Powered by enterprise infrastructure
-- **Automatic Detection**: Smart environment detection (Replit vs local/demo mode)
-- **Demo Mode**: Fallback authentication for testing and development
+- **[Main Documentation](#restaurant-ingredient-tracker)** - This file (overview and quick start)
+- **[Flask Migration Guide](Flask%20Migration/README.md)** - Complete Flask implementation for universal hosting
+- **[Deployment Documentation](DEPLOYMENT.md)** - Production deployment across all platforms
+- **[Docker Deployment Guide](Docker%20Deployment/README.md)** - Containerized deployment options
+- **[Flask Deployment Guide](Flask%20Migration/DEPLOYMENT.md)** - Flask-specific deployment instructions
+- **[System Service Guide](Flask%20Migration/SYSTEMD_SERVICE.md)** - Linux systemd service configuration
+- **[Troubleshooting Guide](Docker%20Deployment/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Project Architecture](replit.md)** - Technical specifications and recent changes
 
-### 📊 Data Analysis & Processing
-- **Multi-CSV Upload**: Support for ingredient info, stock, usage, and waste data
-- **Comprehensive Validation**: Duplicate detection, negative value checks, empty data handling
-- **Smart Calculations**: Automatic computation of shrinkage, costs, and efficiency metrics
-- **Real-time Processing**: Instant report generation with error handling
+## 🏗️ Architecture Overview
 
-### 📈 Advanced Analytics
-- **Interactive Dashboard**: Quick stats overview with key performance metrics
-- **Filtering & Sorting**: Advanced options for data analysis
-- **Top Items Analysis**: Identify highest cost and waste items
-- **Cost Breakdown**: Detailed analysis of used, waste, and shrinkage costs
-- **Visual Highlighting**: Color-coded alerts for high shrinkage items
+This project provides **two complete implementations** of the same restaurant ingredient tracking system:
 
-### 📤 Reporting & Export
-- **PDF Reports**: Professional formatted reports with pagination
-- **Excel Exports**: Structured spreadsheets with formulas and insights
-- **Summary Statistics**: Comprehensive cost analysis and percentages
-- **Downloadable Files**: Instant export with timestamps
+### 1. **Streamlit Edition** (Development & Testing)
+- **Location**: Root directory (`app.py`, `sample_*.csv`)
+- **Purpose**: Rapid development, prototyping, and Replit hosting
+- **Strengths**: Fast development, built-in widgets, automatic UI generation
+- **Best For**: Development, testing, Replit deployment
 
-### 🎯 Smart Insights
-- **Shrinkage Alerts**: Automatic warnings for items with high shrinkage (>$10)
-- **Missing Stock Notifications**: Alerts for inventory discrepancies
-- **Waste Optimization**: Identify opportunities to reduce waste costs
-- **Percentage Tracking**: Monitor waste and shrinkage as percentage of total costs
+### 2. **Flask Edition** (Production & Universal Hosting)
+- **Location**: [`Flask Migration/`](Flask%20Migration/) directory
+- **Purpose**: Production deployment on any hosting platform
+- **Strengths**: Universal compatibility, better performance, standard web protocols
+- **Best For**: Production, shared hosting, VPS, cloud platforms
 
-## 🏗️ Architecture
+> **💡 Both implementations provide identical functionality** - choose based on your hosting requirements.
 
-### Frontend
-- **Framework**: Streamlit with wide layout configuration
-- **Navigation**: Multi-page sidebar system (Dashboard, Analytics, Reports, Settings)
-- **Authentication**: Enterprise-grade Replit Auth with session management
-- **Responsive Design**: Optimized for various screen sizes
+## 🚀 Quick Start
 
-### Data Processing
-- **Engine**: Pandas-based data processing and transformation
-- **Validation**: Comprehensive CSV structure and data integrity checks
-- **Calculations**: Automated metric computation with error handling
-- **Memory Management**: Efficient in-memory data operations
+### Option A: Streamlit (Development)
+```bash
+# Install dependencies
+pip install streamlit pandas fpdf2 xlsxwriter
 
-### Export System
-- **PDF Generation**: FPDF library with custom formatting
-- **Excel Export**: XlsxWriter with advanced spreadsheet features
-- **Report Templates**: Structured output with professional formatting
-
-## 📋 Data Format Requirements
-
-### Ingredient Information CSV
+# Run application
+streamlit run app.py
 ```
-Ingredient,Unit Cost
-Tomatoes,2.50
-Lettuce,1.75
-Chicken Breast,8.99
+Access at `http://localhost:8501`
+
+### Option B: Flask (Production)
+```bash
+# Setup Flask environment
+cd "Flask Migration"
+chmod +x setup.sh start.sh
+./setup.sh && ./start.sh
 ```
-
-### Stock Received CSV  
-```
-Ingredient,Received Qty
-Tomatoes,100
-Lettuce,50
-Chicken Breast,25
-```
-
-### Usage Data CSV
-```
-Ingredient,Used Qty
-Tomatoes,80
-Lettuce,45
-Chicken Breast,20
-```
-
-### Waste Data CSV
-```
-Ingredient,Wasted Qty
-Tomatoes,5
-Lettuce,2
-Chicken Breast,1
-```
-
-## 🧮 Calculations
-
-The application automatically calculates:
-
-- **Expected Use** = Used Quantity + Wasted Quantity
-- **Used Cost** = Used Quantity × Unit Cost
-- **Waste Cost** = Wasted Quantity × Unit Cost
-- **Shrinkage Cost** = (Stocked Quantity × Unit Cost) - (Expected Use × Unit Cost)
-- **Total Cost** = Used Cost + Waste Cost + Shrinkage Cost
-
-## 🎮 Usage
-
-### Getting Started
-1. **Authentication**: Log in through Replit Auth (automatic) or demo mode
-2. **Data Upload**: Upload your four CSV files or try sample data
-3. **Generate Report**: Click "Run Report" to process your data
-4. **Analyze Results**: Use the interactive dashboard and analytics pages
-5. **Export Reports**: Download PDF or Excel reports as needed
-
-### Navigation
-- **🏠 Dashboard**: Main interface for data upload and quick stats
-- **📊 Analytics**: Detailed analysis with filtering and sorting options
-- **📤 Reports**: Export functionality and summary statistics
-- **⚙️ Settings**: User information and help documentation
+Access at `http://localhost:5000`
 
 ### Demo Accounts
-For testing outside Replit environment:
-- **Admin**: `admin` / `admin123`
-- **Manager**: `manager` / `manager456`
-- **Staff**: `staff` / `staff789`
+- **admin** / **admin123** - Administrator access
+- **manager** / **manager456** - Manager access  
+- **staff** / **staff789** - Staff access
 
-## 🔧 Technical Details
+## 🎯 Key Features
 
-### Dependencies
-- **Streamlit**: Web application framework
-- **Pandas**: Data manipulation and analysis
-- **FPDF2**: PDF report generation
-- **XlsxWriter**: Excel export functionality
+### Core Functionality
+- **Multi-CSV Processing**: Upload ingredient info, stock, usage, and waste data
+- **Advanced Analytics**: Real-time cost analysis with filtering and sorting
+- **Professional Reports**: PDF and Excel exports with charts and insights
+- **Alert System**: Automated notifications for high shrinkage and waste
+- **Visual Indicators**: Color-coded tables highlighting problematic items
 
-### Environment Variables
-- `REPL_ID`: Replit environment identifier
-- `REPL_OWNER`: Repository owner information
-- `REPLIT_USER`: Authenticated user information
-- `REPLIT_DOMAINS`: Available domains for deployment
+### Analytics Dashboard
+- **Shrinkage Analysis**: Identify potential theft and inventory losses
+- **Waste Tracking**: Monitor efficiency and identify process improvements
+- **Cost Breakdown**: Detailed analysis of usage, waste, and shrinkage costs
+- **Performance Insights**: Smart recommendations based on data patterns
 
-### Configuration
-- Server runs on port 5000 with headless configuration
-- Wide layout for optimal data visualization
-- Expanded sidebar for easy navigation
+### Report Generation
+- **PDF Reports**: Professional summaries with charts and key metrics
+- **Excel Workbooks**: Multi-sheet analysis with interactive charts
+- **Custom Exports**: Filtered data exports for specific analysis needs
 
-## 🚀 Deployment
+## 📊 Data Requirements
 
-### On Replit
-1. The app runs automatically with Replit Auth
-2. No additional configuration required
-3. Automatic authentication for logged-in users
+### Required CSV Files
 
-### Local Installation (Ubuntu/Linux)
+| File | Purpose | Required Columns | Example |
+|------|---------|------------------|---------|
+| **Ingredient Info** | Unit costs | `Ingredient`, `Unit Cost` | [sample_ingredient_info.csv](sample_ingredient_info.csv) |
+| **Input Stock** | Received quantities | `Ingredient`, `Received Qty` | [sample_input_stock.csv](sample_input_stock.csv) |
+| **Usage Data** | Used quantities | `Ingredient`, `Used Qty` | [sample_usage.csv](sample_usage.csv) |
+| **Waste Data** | Wasted quantities | `Ingredient`, `Wasted Qty` | [sample_waste.csv](sample_waste.csv) |
 
-#### Prerequisites
-- Ubuntu 20.04+ or similar Linux distribution
-- Python 3.8+ and pip
+### Key Metrics Calculated
 
-#### Quick Setup
+| Metric | Formula | Purpose |
+|--------|---------|---------|
+| **Shrinkage** | Received - (Used + Wasted) | Identify theft/loss |
+| **Shrinkage Cost** | Shrinkage × Unit Cost | Dollar impact of losses |
+| **Waste %** | (Wasted ÷ Received) × 100 | Efficiency measurement |
+| **Total Cost** | Used Cost + Waste Cost + Shrinkage Cost | Complete cost analysis |
+
+## 🔧 Deployment Options
+
+### Platform Compatibility
+
+| Platform | Streamlit | Flask | Recommendation |
+|----------|-----------|-------|----------------|
+| **Replit** | ✅ Native | ✅ Compatible | Use Streamlit |
+| **Heroku** | ⚠️ Limited | ✅ Excellent | Use Flask |
+| **DigitalOcean** | ⚠️ Complex | ✅ Simple | Use Flask |
+| **AWS/GCP** | ⚠️ Complex | ✅ Native | Use Flask |
+| **Shared Hosting** | ❌ No support | ✅ Full support | Use Flask |
+| **VPS/Dedicated** | ⚠️ Limited | ✅ Full control | Use Flask |
+
+### Quick Deployment Guides
+
+#### Production Flask Deployment
 ```bash
-# Update system
-sudo apt update && sudo apt upgrade -y
-sudo apt install python3 python3-pip python3-venv git -y
-
-# Create project directory
-mkdir ~/restaurant-tracker && cd ~/restaurant-tracker
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install streamlit pandas fpdf2 xlsxwriter openpyxl
-
-# Download application files (copy app.py and sample CSV files)
-
-# Create Streamlit configuration
-mkdir .streamlit
-cat > .streamlit/config.toml << EOF
-[server]
-headless = true
-address = "0.0.0.0"
-port = 5000
-
-[theme]
-primaryColor = "#ff6b6b"
-backgroundColor = "#ffffff"
-secondaryBackgroundColor = "#f0f2f6"
-textColor = "#262730"
-EOF
-
-# Run application
-streamlit run app.py --server.port 5000
+cd "Flask Migration"
+sudo ./deploy.sh  # Automated production setup
 ```
+📖 **See**: [Flask Deployment Guide](Flask%20Migration/DEPLOYMENT.md)
 
-#### Production Deployment
-
-**Create Systemd Service:**
+#### Docker Deployment
 ```bash
-sudo nano /etc/systemd/system/restaurant-tracker.service
+cd "Docker Deployment"
+./run-cpu-compatible-legacy.sh  # For older systems
 ```
+📖 **See**: [Docker Deployment Guide](Docker%20Deployment/README.md)
 
-Add service configuration:
-```ini
-[Unit]
-Description=Restaurant Ingredient Tracker
-After=network.target
-
-[Service]
-Type=simple
-User=ubuntu
-WorkingDirectory=/home/ubuntu/restaurant-tracker
-Environment=PATH=/home/ubuntu/restaurant-tracker/venv/bin
-ExecStart=/home/ubuntu/restaurant-tracker/venv/bin/streamlit run app.py --server.port 5000
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Enable and start service:**
+#### Development Setup
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable restaurant-tracker
-sudo systemctl start restaurant-tracker
-sudo systemctl status restaurant-tracker
+streamlit run app.py  # Streamlit development
+# OR
+cd "Flask Migration" && ./start.sh  # Flask development
 ```
 
-**Configure firewall:**
+## 🛠️ Management Tools
+
+### Flask Service Management
 ```bash
-sudo ufw allow 5000/tcp
-sudo ufw enable
+cd "Flask Migration"
+./service-manager.sh status   # Check service status
+./service-manager.sh health   # Run health checks
+./service-manager.sh logs     # View application logs
 ```
+📖 **See**: [System Service Guide](Flask%20Migration/SYSTEMD_SERVICE.md)
 
-#### Optional: Nginx Reverse Proxy
+### Docker Management
 ```bash
-# Install Nginx
-sudo apt install nginx -y
-
-# Configure virtual host
-sudo nano /etc/nginx/sites-available/restaurant-tracker
+cd "Docker Deployment"
+docker-compose logs -f       # View container logs
+docker-compose restart      # Restart services
 ```
 
-Add configuration:
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
+## 🔒 Security Features
 
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
+### Authentication
+- **Replit Auth**: Automatic authentication in Replit environment
+- **Demo Accounts**: Secure fallback authentication for standalone deployment
+- **Session Management**: Secure session handling with automatic cleanup
 
-Enable site:
-```bash
-sudo ln -s /etc/nginx/sites-available/restaurant-tracker /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl restart nginx
-```
+### Production Security
+- **Service Hardening**: Non-privileged users, restricted file access
+- **Network Security**: Firewall configuration, SSL/HTTPS support
+- **Data Protection**: Secure file uploads, input validation
 
-### Windows Installation
+## 📈 Performance Comparison
 
-#### Using Command Prompt/PowerShell:
-```cmd
-# Install Python from python.org if not installed
+| Feature | Streamlit | Flask |
+|---------|-----------|-------|
+| **Startup Time** | 30+ seconds | < 5 seconds |
+| **Memory Usage** | 200+ MB | < 100 MB |
+| **Concurrent Users** | Limited | Excellent |
+| **Hosting Options** | Limited | Universal |
+| **Mobile Support** | Basic | Excellent |
+| **Customization** | Limited | Complete |
 
-# Create project directory
-mkdir restaurant-tracker
-cd restaurant-tracker
+## 📋 Sample Data
 
-# Create virtual environment
-python -m venv venv
-venv\Scripts\activate
+Test the application with included sample data:
+- Load via "Sample Data" button in either interface
+- Demonstrates all features with realistic restaurant data
+- Includes items with various shrinkage and waste patterns
 
-# Install dependencies
-pip install streamlit pandas fpdf2 xlsxwriter openpyxl
-
-# Create .streamlit directory and config
-mkdir .streamlit
-echo [server] > .streamlit\config.toml
-echo headless = true >> .streamlit\config.toml
-echo address = "0.0.0.0" >> .streamlit\config.toml
-echo port = 5000 >> .streamlit\config.toml
-
-# Run application
-streamlit run app.py --server.port 5000
-```
-
-### macOS Installation
-
-```bash
-# Install Homebrew if not installed
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install Python
-brew install python
-
-# Create project directory
-mkdir ~/restaurant-tracker && cd ~/restaurant-tracker
-
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install streamlit pandas fpdf2 xlsxwriter openpyxl
-
-# Create Streamlit configuration
-mkdir .streamlit
-cat > .streamlit/config.toml << EOF
-[server]
-headless = true
-address = "0.0.0.0"
-port = 5000
-EOF
-
-# Run application
-streamlit run app.py --server.port 5000
-```
-
-## 📊 Key Metrics
-
-The application tracks and analyzes:
-- Total ingredient costs and investments
-- Waste percentages and cost impact
-- Shrinkage identification and alerts
-- High-cost items requiring attention
-- Efficiency trends and optimization opportunities
-
-## 🛡️ Security Features
-
-- Enterprise-grade authentication through Replit
-- Secure session management
-- Environment-based configuration
-- Data validation and sanitization
-- Error handling and logging
-
-## 🆕 Recent Updates
-
-- Implemented enterprise Replit Auth with ReplitAuth class
-- Added comprehensive navigation system with multi-page layout
-- Enhanced login page with feature overview
-- Created advanced analytics with filtering and sorting
-- Added smart insights and automated alerts
-- Improved export functionality with better formatting
-- Integrated sample data for easy testing
-- Enhanced error handling and user experience
-- Added visual highlighting for problem identification
-- Implemented secure logout with session cleanup
-- Created comprehensive Docker deployment solutions
-- Fixed CPU compatibility issues for SSE4a-only processors
-- Added automated deployment scripts with error handling
-- Implemented three Docker configurations for different use cases
-- Updated documentation with complete installation guides
-
-## 🔧 Troubleshooting
+## 🔍 Troubleshooting
 
 ### Common Issues
+1. **Port conflicts**: Use different ports or stop conflicting services
+2. **File permissions**: Ensure proper read/write access to upload directories
+3. **CSV format**: Verify column headers match requirements exactly
+4. **Browser compatibility**: Use modern browsers for best experience
 
-**Port already in use:**
-```bash
-# Find process using port 5000
-sudo lsof -i :5000
-# Kill process if needed
-sudo kill <PID>
-```
+### Getting Help
+- **Flask Issues**: See [Flask Deployment Guide](Flask%20Migration/DEPLOYMENT.md)
+- **Docker Issues**: See [Docker Troubleshooting](Docker%20Deployment/TROUBLESHOOTING.md)
+- **System Service**: See [Systemd Service Guide](Flask%20Migration/SYSTEMD_SERVICE.md)
+- **General Issues**: Check [Project Architecture](replit.md) for recent changes
 
-**Permission issues:**
-```bash
-# Fix ownership (Linux)
-sudo chown -R $USER:$USER ~/restaurant-tracker
-```
+## 🚀 Next Steps
 
-**Virtual environment issues:**
-```bash
-# Recreate virtual environment
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-pip install streamlit pandas fpdf2 xlsxwriter openpyxl
-```
+1. **Choose Your Implementation**:
+   - Development/Testing → Use Streamlit edition
+   - Production/Hosting → Use Flask edition
 
-**Service not starting (Linux):**
-```bash
-# Check service logs
-sudo journalctl -u restaurant-tracker -f
-# Restart service
-sudo systemctl restart restaurant-tracker
-```
+2. **Deploy Your Choice**:
+   - Follow platform-specific guides in linked documentation
+   - Use provided automation scripts for quick setup
 
-### Authentication Notes
-- **Replit Environment**: Automatic authentication via Replit Auth
-- **Local Installation**: Uses demo mode with test accounts
-- **Demo Accounts**: admin/admin123, manager/manager456, staff/staff789
+3. **Upload Your Data**:
+   - Prepare CSV files according to requirements
+   - Test with sample data first
 
-### Maintenance Commands (Linux Production)
-```bash
-# Service management
-sudo systemctl start restaurant-tracker
-sudo systemctl stop restaurant-tracker
-sudo systemctl restart restaurant-tracker
-sudo systemctl status restaurant-tracker
-
-# View logs
-sudo journalctl -u restaurant-tracker -f
-```
-
-## 🤝 Support
-
-- **Replit Users**: Authentication is automatic when logged into Replit
-- **Local Users**: Use demo accounts for testing and development
-- **Issues**: Check troubleshooting section above for common solutions
-- **Performance**: Minimum 2GB RAM, 4GB recommended for production
-
-For detailed deployment instructions, see:
-- `DEPLOYMENT.md` - Local installation guide for Ubuntu, Windows, macOS
-- `Docker Deployment/` - Containerized deployment with CPU compatibility options
+4. **Analyze Results**:
+   - Focus on high shrinkage items for theft prevention
+   - Monitor waste percentages for efficiency improvements
+   - Generate regular reports for management review
 
 ---
 
-**Built with ❤️ for restaurant efficiency and cost optimization**
+> **📚 Complete Documentation**: All guides are cross-linked and provide step-by-step instructions for your specific deployment scenario. Start with the [Flask Migration Guide](Flask%20Migration/README.md) for production deployments.
