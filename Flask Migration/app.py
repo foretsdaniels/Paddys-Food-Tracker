@@ -45,6 +45,23 @@ def allowed_file(filename):
     """Check if file extension is allowed."""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def normalize_sort_column(sort_param):
+    """Normalize sort parameter to actual column name."""
+    column_mapping = {
+        'shrinkage_cost': 'Shrinkage Cost',
+        'total_cost': 'Total Cost',
+        'waste_cost': 'Waste Cost',
+        'used_cost': 'Used Cost',
+        'waste_percentage': 'Waste %',
+        'shrinkage_percentage': 'Shrinkage %',
+        'received_qty': 'Received Qty',
+        'used_qty': 'Used Qty',
+        'wasted_qty': 'Wasted Qty',
+        'ingredient': 'Ingredient',
+        'unit_cost': 'Unit Cost'
+    }
+    return column_mapping.get(sort_param, sort_param)
+
 @app.route('/')
 def index():
     """Landing page."""
@@ -132,7 +149,8 @@ def analytics():
     
     # Apply filters if any
     filter_type = request.args.get('filter', 'all')
-    sort_by = request.args.get('sort', 'shrinkage_cost')
+    sort_by_param = request.args.get('sort', 'shrinkage_cost')
+    sort_by = normalize_sort_column(sort_by_param)
     sort_order = request.args.get('order', 'desc')
     
     filtered_results = data_processor.apply_filters(results, filter_type)
@@ -151,7 +169,7 @@ def analytics():
                          alerts=alerts,
                          insights=insights,
                          current_filter=filter_type,
-                         current_sort=sort_by,
+                         current_sort=sort_by_param,
                          current_order=sort_order)
 
 @app.route('/reports')
