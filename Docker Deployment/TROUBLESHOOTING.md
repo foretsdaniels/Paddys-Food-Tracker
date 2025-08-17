@@ -131,19 +131,26 @@ docker-compose up -d
 
 ### Docker Compose Version Issues
 
-**Symptom**: "Version in docker-compose.yml is unsupported" error
+**Symptom**: KeyError 'http+docker' or networking errors with Docker Compose 1.25.x
 
-**Cause**: Your Docker Compose version doesn't support version 3.8
+**Cause**: Docker Compose 1.25.0 has known networking bugs and limited feature support
 
 **Solution**:
-All compose files have been updated to use version 3.3 for maximum compatibility. If you still get errors:
+For Docker Compose 1.25.x and older, use the legacy configuration:
 
+```bash
+# Use legacy CPU-compatible configuration
+cd "Docker Deployment"
+./run-cpu-compatible-legacy.sh
+
+# Or manually
+docker-compose -f docker-compose.cpu-compatible-legacy.yml up --build
+```
+
+**For newer versions**:
 ```bash
 # Check Docker Compose version
 docker-compose --version
-
-# For very old versions, try without version specification
-# Edit compose file and remove the version line entirely
 
 # Update Docker Compose (Ubuntu/Debian)
 sudo apt remove docker-compose
@@ -153,7 +160,7 @@ sudo apt install docker-compose-plugin
 docker compose -f docker-compose.cpu-compatible.yml up --build
 ```
 
-**Fixed versions**: All compose files now use `version: '3.3'` and compatible resource limit syntax.
+**Legacy files**: `docker-compose.cpu-compatible-legacy.yml` uses version 2.0 with minimal features for maximum compatibility.
 
 ### Memory Issues
 
