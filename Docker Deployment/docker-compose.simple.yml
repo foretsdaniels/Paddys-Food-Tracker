@@ -1,0 +1,79 @@
+# ============================================================================
+# Restaurant Ingredient Tracker - Simplified Docker Compose
+# ============================================================================
+# This is a simplified version that removes Redis and Nginx dependencies
+# to resolve "Illegal instruction (core dumped)" issues
+
+version: '3.8'
+
+services:
+  restaurant-tracker:
+    build:
+      context: ..
+      dockerfile: Docker Deployment/Dockerfile
+      target: production
+      args:
+        APP_USER: streamlit
+        APP_UID: 1000
+        APP_GID: 1000
+    container_name: restaurant-tracker-app
+    
+    # Platform specification to avoid architecture issues
+    platform: linux/amd64
+    
+    # Environment configuration
+    environment:
+      # Streamlit Configuration
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+      - STREAMLIT_SERVER_FILE_WATCHER_TYPE=none
+      
+      # Application Configuration
+      - APP_ENV=production
+      - ENABLE_DEMO_MODE=true
+      
+      # Performance Configuration
+      - PYTHONHASHSEED=random
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+      - PYTHONIOENCODING=UTF-8
+    
+    # Port mapping
+    ports:
+      - "8501:8501"
+    
+    # Volume mounts for data persistence
+    volumes:
+      - ./data:/app/data:rw
+      - ./logs:/app/logs:rw
+      - ./exports:/app/exports:rw
+    
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -29,10 +29,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_DEFAULT_TIMEOUT=100
 
-# Install system dependencies required for Python packages
+# Install system dependencies required for Python packages and fix architecture issues
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
+    wget \
+    ca-certificates \
+    gcc \
+    g++ \
+    libc6-dev \
+    libffi-dev \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create application user and group for security
@@ -42,12 +49,14 @@ RUN groupadd -g ${APP_GID} ${APP_USER} && \
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files first for better Docker layer caching
-COPY pyproject.toml ./
-
-# Install Python dependencies
+# Install Python dependencies directly without pyproject.toml
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install -e .
+    pip install --no-cache-dir \
+    streamlit==1.28.2 \
+    pandas==2.1.4 \
+    fpdf2==2.7.6 \
+    xlsxwriter==3.1.9 \
+    openpyxl==3.1.2
 
 # ============================================================================
 # Production Stage - Create minimal runtime image
@@ -70,10 +79,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     STREAMLIT_SERVER_ENABLE_CORS=false \
     STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=true
 
-# Install minimal system dependencies for runtime
+# Install minimal system dependencies for runtime and architecture compatibility
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    wget \
+    ca-certificates \
     tini \
+    libc6 \
+    libgcc-s1 \
+    libstdc++6 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -88,13 +102,32 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application files
-COPY --chown=${APP_USER}:${APP_USER} app.py ./
-COPY --chown=${APP_USER}:${APP_USER} sample_*.csv ./
-COPY --chown=${APP_USER}:${APP_USER} README.md ./
+# Create .streamlit directory and config
+RUN mkdir -p /app/.streamlit
+COPY --chown=${APP_USER}:${APP_USER} <<EOF /app/.streamlit/config.toml
+[server]
+headless = true
+address = "0.0.0.0"
+port = 8501
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#ff6b6b"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+EOF
+
+# Copy application files from parent directory
+COPY --chown=${APP_USER}:${APP_USER} ../app.py ./
+COPY --chown=${APP_USER}:${APP_USER} ../sample_*.csv ./
+COPY --chown=${APP_USER}:${APP_USER} ../README.md ./
 
 # Create necessary directories with proper permissions
-RUN mkdir -p /app/data /app/logs /app/exports && \
+RUN mkdir -p /app/data /app/logs /app/exports /app/.streamlit && \
     chown -R ${APP_USER}:${APP_USER} /app
 
 # Switch to non-root user for security
@@ -104,14 +137,14 @@ USER ${APP_USER}
 EXPOSE 8501
 
 # Add health check to monitor container health
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8501/_stcore/health || exit 1
 
 # Use tini as init system for proper signal handling
 ENTRYPOINT ["/usr/bin/tini", "--"]
 
-# Default command to run the Streamlit application
-CMD ["streamlit", "run", "app.py", \
+# Default command to run the Streamlit application with explicit configuration
+CMD ["python", "-m", "streamlit", "run", "app.py", \
      "--server.port=8501", \
      "--server.address=0.0.0.0", \
      "--server.headless=true", \

@@ -2,6 +2,28 @@
 
 This guide provides the essential commands to quickly deploy the Restaurant Ingredient Tracker using Docker.
 
+## ⚠️ Fixed "Illegal instruction (core dumped)" Issue
+
+If you experienced the "Illegal instruction (core dumped)" error, it has been resolved with these fixes:
+
+### Quick Fix - Use Simplified Configuration:
+```bash
+# Navigate to Docker Deployment directory
+cd "Docker Deployment"
+
+# Use the simplified Docker Compose file (no Redis/Nginx dependencies)
+docker-compose -f docker-compose.simple.yml up --build
+
+# Access the application at http://localhost:8501
+```
+
+### What Was Fixed:
+1. **Platform compatibility**: Added `platform: linux/amd64` specification
+2. **System libraries**: Added missing runtime libraries (libc6, libgcc-s1, libstdc++6)
+3. **Python packages**: Fixed to stable versions (streamlit==1.28.2, pandas==2.1.4)
+4. **Simplified deps**: Removed Redis dependency in simple config
+5. **Enhanced startup**: Longer health check startup period
+
 ## ⚡ Quick Commands
 
 ```bash
