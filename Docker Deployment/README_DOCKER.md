@@ -24,6 +24,25 @@ docker-compose -f docker-compose.simple.yml up --build
 4. **Simplified deps**: Removed Redis dependency in simple config
 5. **Enhanced startup**: Longer health check startup period
 
+## 🚨 For CPUs with Only SSE4a Support (No SSE4.1/AVX)
+
+If you have an older AMD processor that only supports SSE4a and crashes with "Illegal instruction", use the CPU-compatible build:
+
+```bash
+# Use the CPU-compatible configuration (compiles packages from source)
+cd "Docker Deployment"
+./run-cpu-compatible.sh
+
+# Or manually:
+docker-compose -f docker-compose.cpu-compatible.yml up --build
+```
+
+**CPU-Compatible Features:**
+- Compiles NumPy and Pandas from source without SSE4.1/AVX
+- Uses older package versions known to work on SSE4a-only CPUs
+- Disables vectorized operations that might use newer instructions
+- Extended build time (10-15 minutes) but guaranteed compatibility
+
 ## ⚡ Quick Commands
 
 ```bash

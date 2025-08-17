@@ -1,14 +1,11 @@
 # ============================================================================
-# Restaurant Ingredient Tracker - Production Docker Image
+# Restaurant Ingredient Tracker - CPU Compatible Docker Image
 # ============================================================================
 # 
-# This Dockerfile creates a production-ready container for the Streamlit
-# restaurant ingredient tracking application with:
-# - Multi-stage build for smaller final image
-# - Security best practices (non-root user)
-# - Optimized Python dependencies
-# - Health checks for container monitoring
-# - Proper logging configuration
+# This Dockerfile creates a CPU-compatible container for systems with:
+# - Only SSE4a support (no SSE4.1/SSE4.2/AVX)
+# - Older AMD processors that crash with "Illegal instruction"
+# - Builds packages from source to avoid pre-compiled binaries with newer instructions
 
 # ============================================================================
 # Build Stage - Install dependencies and prepare application
@@ -29,7 +26,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_DEFAULT_TIMEOUT=100
 
-# Install system dependencies required for Python packages and fix architecture issues
+# Install system dependencies required for compiling from source
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
@@ -37,9 +34,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     gcc \
     g++ \
+    gfortran \
     libc6-dev \
     libffi-dev \
     libssl-dev \
+    libblas-dev \
+    liblapack-dev \
+    libatlas-base-dev \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Create application user and group for security
@@ -49,12 +51,13 @@ RUN groupadd -g ${APP_GID} ${APP_USER} && \
 # Set working directory
 WORKDIR /app
 
-# Install Python dependencies with CPU-compatible versions (no AVX/SSE4.1/SSE4.2)
-# Use --no-binary for packages that commonly have SSE4.1/AVX issues
+# Install CPU-compatible Python dependencies
+# Force compilation from source for packages that commonly use SSE4.1/AVX
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir --no-binary=pandas,numpy \
-    "numpy<1.25.0" \
+    pip install --no-cache-dir --no-binary=:all: \
+    "numpy==1.24.4" \
     "pandas==2.0.3" \
+    && pip install --no-cache-dir \
     streamlit==1.28.2 \
     fpdf2==2.7.6 \
     xlsxwriter==3.1.9 \
@@ -81,7 +84,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     STREAMLIT_SERVER_ENABLE_CORS=false \
     STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=true
 
-# Install minimal system dependencies for runtime and architecture compatibility
+# Install minimal system dependencies for runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
@@ -90,6 +93,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libc6 \
     libgcc-s1 \
     libstdc++6 \
+    libblas3 \
+    liblapack3 \
+    libatlas3-base \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -139,7 +145,7 @@ USER ${APP_USER}
 EXPOSE 8501
 
 # Add health check to monitor container health
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8501/_stcore/health || exit 1
 
 # Use tini as init system for proper signal handling
