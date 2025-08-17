@@ -24,6 +24,10 @@ args = "Streamlit Server"
 task = "workflow.run"
 args = "streamlit_website"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask Test Server"
+
 [[workflows.workflow]]
 name = "Streamlit Server"
 author = "agent"
@@ -41,6 +45,22 @@ author = "agent"
 task = "shell.exec"
 args = "uv add fpdf2 xlsxwriter"
 
+[[workflows.workflow]]
+name = "Flask Test Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd \"Flask Migration\" && python app.py"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3000

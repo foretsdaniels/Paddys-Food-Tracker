@@ -228,13 +228,18 @@ def sample_data():
         return redirect(url_for('login'))
     
     try:
-        # Load sample data from the parent directory
+        # Load sample data from the Flask Migration directory
         sample_files = {
-            'ingredient_info': '../sample_ingredient_info.csv',
-            'input_stock': '../sample_input_stock.csv', 
-            'usage': '../sample_usage.csv',
-            'waste': '../sample_waste.csv'
+            'ingredient_info': 'sample_ingredient_info.csv',
+            'input_stock': 'sample_input_stock.csv', 
+            'usage': 'sample_usage.csv',
+            'waste': 'sample_waste.csv'
         }
+        
+        # Verify all sample files exist
+        for file_type, filename in sample_files.items():
+            if not os.path.exists(filename):
+                raise FileNotFoundError(f"Sample file not found: {filename}")
         
         results = data_processor.process_files(sample_files)
         session['current_results'] = results.to_json(orient='records')
