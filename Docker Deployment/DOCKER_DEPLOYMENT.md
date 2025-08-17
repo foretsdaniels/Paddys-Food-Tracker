@@ -1,6 +1,17 @@
 # Restaurant Ingredient Tracker - Docker Deployment Guide
 
-This guide provides comprehensive instructions for deploying the Restaurant Ingredient Tracker application using Docker and Docker Compose.
+This guide provides comprehensive instructions for deploying the Restaurant Ingredient Tracker application using Docker and Docker Compose, including specialized CPU compatibility solutions.
+
+## 🚨 CPU Compatibility Notice
+
+If you experience "Illegal instruction (core dumped)" errors, your CPU likely only supports SSE4a (older AMD processors). Use the CPU-compatible configuration:
+
+```bash
+cd "Docker Deployment"
+./run-cpu-compatible.sh
+```
+
+**Why this happens**: Pre-compiled Python packages (NumPy, Pandas) often use SSE4.1/AVX instructions that crash on SSE4a-only processors. The CPU-compatible build compiles from source without these dependencies.
 
 ## 📋 Table of Contents
 

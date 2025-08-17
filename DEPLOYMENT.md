@@ -318,3 +318,35 @@ chmod +x ~/backup-tracker.sh
 ```
 
 Your Restaurant Ingredient Tracker should now be fully deployed and accessible on Ubuntu!
+
+## Docker Deployment (Alternative)
+
+For containerized deployment, see the `Docker Deployment/` directory which includes:
+
+### Quick Docker Start
+```bash
+cd "Docker Deployment"
+
+# For standard systems
+./run-fixed.sh
+
+# For CPUs with only SSE4a support (older AMD processors)
+./run-cpu-compatible.sh
+```
+
+### Docker Configurations Available
+- **Standard**: `docker-compose.yml` - Full production setup with Redis and Nginx
+- **Simplified**: `docker-compose.simple.yml` - Streamlit only, no dependencies
+- **CPU-Compatible**: `docker-compose.cpu-compatible.yml` - For SSE4a-only processors
+
+### CPU Compatibility Notes
+If you encounter "Illegal instruction (core dumped)" errors, your CPU likely only supports SSE4a (not SSE4.1/SSE4.2/AVX). Use the CPU-compatible configuration which:
+- Compiles NumPy and Pandas from source
+- Uses older package versions known to work on SSE4a-only CPUs
+- Takes 10-15 minutes to build but guarantees compatibility
+
+### Docker Benefits
+- Consistent environment across different systems
+- Automated dependency management
+- Production-ready with health checks and restart policies
+- Easy scaling and deployment options
