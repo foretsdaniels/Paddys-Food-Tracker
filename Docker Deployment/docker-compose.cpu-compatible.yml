@@ -4,7 +4,7 @@
 # This configuration is specifically for CPUs with only SSE4a support
 # (no SSE4.1/SSE4.2/AVX) to avoid "Illegal instruction (core dumped)" errors
 
-version: '3.8'
+version: '3.3'
 
 services:
   restaurant-tracker:
@@ -70,15 +70,10 @@ services:
     # Restart policy
     restart: unless-stopped
     
-    # Resource limits - more generous for CPU compilation
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '2.0'
-        reservations:
-          memory: 1G
-          cpus: '1.0'
+    # Resource limits - more generous for CPU compilation (version 3.3 compatible)
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpu_count: 2
     
     # Logging configuration
     logging:

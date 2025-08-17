@@ -131,19 +131,29 @@ docker-compose up -d
 
 ### Docker Compose Version Issues
 
-**Symptom**: Unsupported compose file format
+**Symptom**: "Version in docker-compose.yml is unsupported" error
+
+**Cause**: Your Docker Compose version doesn't support version 3.8
 
 **Solution**:
+All compose files have been updated to use version 3.3 for maximum compatibility. If you still get errors:
+
 ```bash
 # Check Docker Compose version
 docker-compose --version
 
-# Update Docker Compose
+# For very old versions, try without version specification
+# Edit compose file and remove the version line entirely
+
+# Update Docker Compose (Ubuntu/Debian)
+sudo apt remove docker-compose
 sudo apt install docker-compose-plugin
 
-# Or use docker compose (newer syntax)
-docker compose -f docker-compose.simple.yml up
+# Use newer syntax if available
+docker compose -f docker-compose.cpu-compatible.yml up --build
 ```
+
+**Fixed versions**: All compose files now use `version: '3.3'` and compatible resource limit syntax.
 
 ### Memory Issues
 

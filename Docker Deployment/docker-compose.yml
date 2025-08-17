@@ -12,7 +12,7 @@
 # - Health checks and restart policies
 # - Development and production profiles
 
-version: '3.8'
+version: '3.3'
 
 # ============================================================================
 # Services Configuration
@@ -103,15 +103,10 @@ services:
     # Restart policy
     restart: unless-stopped
     
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
+    # Resource limits (version 3.3 compatible)
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpu_count: 1
     
     # Network configuration
     networks:
@@ -167,12 +162,9 @@ services:
       retries: 3
       start_period: 30s
     
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.2'
+    # Resource limits (version 3.3 compatible)
+    mem_limit: 128m
+    memswap_limit: 128m
     
     # Restart policy
     restart: unless-stopped

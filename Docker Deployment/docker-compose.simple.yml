@@ -4,7 +4,7 @@
 # This is a simplified version that removes Redis and Nginx dependencies
 # to resolve "Illegal instruction (core dumped)" issues
 
-version: '3.8'
+version: '3.3'
 
 services:
   restaurant-tracker:
@@ -61,15 +61,10 @@ services:
     # Restart policy
     restart: unless-stopped
     
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-          cpus: '1.0'
-        reservations:
-          memory: 512M
-          cpus: '0.5'
+    # Resource limits (version 3.3 compatible)
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpu_count: 1
     
     # Logging configuration
     logging:
