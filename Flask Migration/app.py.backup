@@ -160,7 +160,7 @@ def upload_files():
             results = data_processor.process_files(files)
             # Store large data server-side, just keep reference in session
             session_id = f"{session.get('username', 'unknown')}_{datetime.now().timestamp()}"
-            stored_data = {
+            session_data_store[session_id] = {
                 'results': results.to_json(orient='records'),
                 'upload_timestamp': datetime.now().isoformat()
             }
@@ -180,10 +180,7 @@ def analytics():
     if 'username' not in session:
         return redirect(url_for('login'))
     
-    stored_data = None
-    if 'data_session_id' in session:
-        stored_data = load_session_data(session.get('username', 'unknown'), session['data_session_id'])
-    if not stored_data:
+    if 'data_session_id' not in session or session['data_session_id'] not in session_data_store:
         flash('No data available. Please upload CSV files first.', 'warning')
         return redirect(url_for('upload_files'))
     
@@ -223,10 +220,7 @@ def reports():
     if 'username' not in session:
         return redirect(url_for('login'))
     
-    stored_data = None
-    if 'data_session_id' in session:
-        stored_data = load_session_data(session.get('username', 'unknown'), session['data_session_id'])
-    if not stored_data:
+    if 'data_session_id' not in session or session['data_session_id'] not in session_data_store:
         flash('No data available. Please upload CSV files first.', 'warning')
         return redirect(url_for('upload_files'))
     
@@ -238,20 +232,14 @@ def export_pdf():
     if 'username' not in session:
         return redirect(url_for('login'))
     
-    stored_data = None
-    if 'data_session_id' in session:
-        stored_data = load_session_data(session.get('username', 'unknown'), session['data_session_id'])
-    if not stored_data:
+    if 'data_session_id' not in session or session['data_session_id'] not in session_data_store:
         flash('No data available. Please upload CSV files first.', 'warning')
         return redirect(url_for('upload_files'))
     
     try:
-        # Retrieve data from file storage
-        username = session.get('username', 'unknown')
-        stored_data = load_session_data(username, session['data_session_id'])
-        if not stored_data:
-            flash('Session data expired. Please upload files again.', 'warning')
-            return redirect(url_for('upload_files'))
+        # Retrieve data from server-side storage
+        data_session_id = session['data_session_id']
+        stored_data = session_data_store[data_session_id]
         results = pd.read_json(StringIO(stored_data['results']), orient='records')
         summary_stats = data_processor.calculate_summary_stats(results)
         
@@ -277,10 +265,7 @@ def export_excel():
         print("No username in session - redirecting to login")
         return redirect(url_for('login'))
     
-    stored_data = None
-    if 'data_session_id' in session:
-        stored_data = load_session_data(session.get('username', 'unknown'), session['data_session_id'])
-    if not stored_data:
+    if 'data_session_id' not in session or session['data_session_id'] not in session_data_store:
         print("No data_session_id in session or data not found - redirecting to upload")
         flash('No data available. Please upload CSV files first.', 'warning')
         return redirect(url_for('upload_files'))
@@ -288,12 +273,9 @@ def export_excel():
     try:
         print("Starting Excel generation...")
         
-        # Retrieve data from file storage
-        username = session.get('username', 'unknown')
-        stored_data = load_session_data(username, session['data_session_id'])
-        if not stored_data:
-            flash('Session data expired. Please upload files again.', 'warning')
-            return redirect(url_for('upload_files'))
+        # Retrieve data from server-side storage
+        data_session_id = session['data_session_id']
+        stored_data = session_data_store[data_session_id]
         results = pd.read_json(StringIO(stored_data['results']), orient='records')
         summary_stats = data_processor.calculate_summary_stats(results)
         insights = data_processor.get_insights(results)
@@ -364,15 +346,12 @@ def api_data():
     if 'username' not in session:
         return jsonify({'error': 'Not authenticated'}), 401
     
-    stored_data = None
-    if 'data_session_id' in session:
-        stored_data = load_session_data(session.get('username', 'unknown'), session['data_session_id'])
-    if not stored_data:
+    if 'data_session_id' not in session or session['data_session_id'] not in session_data_store:
         return jsonify({'error': 'No data available'}), 404
     
     # Retrieve data from server-side storage
     data_session_id = session['data_session_id']
-    stored_data = stored_data
+    stored_data = session_data_store[data_session_id]
     results = pd.read_json(StringIO(stored_data['results']), orient='records')
     return jsonify(results.to_dict('records'))
 
