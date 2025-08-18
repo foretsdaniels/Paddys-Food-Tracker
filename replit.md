@@ -3,6 +3,7 @@
 The Restaurant Ingredient Tracker is a Streamlit-based web application designed to help restaurants analyze their ingredient usage, waste, and costs. The application processes multiple CSV data sources (ingredient information, stock received, usage, and waste) to calculate key metrics including shrinkage, cost breakdowns, and provide comprehensive reporting capabilities with PDF and Excel export functionality.
 
 ## Recent Changes
+- **CRITICAL BUG FIX**: Fixed Flask PDF export encoding error - added compatibility handling for both string and bytearray outputs from different FPDF versions
 - **CRITICAL BUG FIX**: Fixed Flask PDF export error caused by Unicode bullet character "•" not supported by default Arial font - replaced with dash "-" characters for compatibility
 - **CRITICAL BUG FIX**: Fixed Flask 500 error after CSV upload caused by column name mismatch between templates ('shrinkage_cost') and DataFrame ('Shrinkage Cost') - added normalize_sort_column() function to handle parameter mapping
 - **CRITICAL BUG FIX**: Fixed Flask "load sample data" function that was returning 500 error due to incorrect file path references (using '../sample_*.csv' instead of 'sample_*.csv')

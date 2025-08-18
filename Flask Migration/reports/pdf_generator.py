@@ -42,7 +42,12 @@ class PDFReportGenerator:
         
         # Save to buffer
         buffer = io.BytesIO()
-        pdf_output = pdf.output(dest='S').encode('latin1')
+        pdf_output = pdf.output(dest='S')
+        
+        # Handle both string and bytearray outputs from different FPDF versions
+        if isinstance(pdf_output, str):
+            pdf_output = pdf_output.encode('latin1')
+        
         buffer.write(pdf_output)
         buffer.seek(0)
         
