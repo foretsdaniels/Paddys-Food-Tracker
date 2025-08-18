@@ -98,7 +98,7 @@ class PDFReportGenerator:
             pdf.set_font('Arial', '', self.font_size_small)
             
             for _, item in top_shrinkage.iterrows():
-                pdf.cell(0, 5, f'• {item["Ingredient"]}: ${item["Shrinkage Cost"]:.2f}', 0, 1, 'L')
+                pdf.cell(0, 5, f'- {item["Ingredient"]}: ${item["Shrinkage Cost"]:.2f}', 0, 1, 'L')
         
         pdf.ln(5)
         
@@ -110,7 +110,7 @@ class PDFReportGenerator:
             pdf.set_font('Arial', '', self.font_size_small)
             
             for _, item in top_waste.iterrows():
-                pdf.cell(0, 5, f'• {item["Ingredient"]}: {item["Waste %"]:.1f}%', 0, 1, 'L')
+                pdf.cell(0, 5, f'- {item["Ingredient"]}: {item["Waste %"]:.1f}%', 0, 1, 'L')
         
         pdf.ln(10)
     
