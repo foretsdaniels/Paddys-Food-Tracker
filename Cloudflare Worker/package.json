@@ -1,0 +1,34 @@
+{
+  "name": "restaurant-ingredient-tracker-worker",
+  "version": "1.0.0",
+  "description": "Restaurant Ingredient Tracker as a Cloudflare Worker",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "webpack --mode=production",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "start": "wrangler dev --local"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20240725.0",
+    "hono": "^4.5.1",
+    "csv-parser": "^3.0.0",
+    "jspdf": "^2.5.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "webpack": "^5.93.0",
+    "webpack-cli": "^5.1.4",
+    "typescript": "^5.5.4",
+    "@types/node": "^20.14.12",
+    "wrangler": "^3.65.1"
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "restaurant",
+    "ingredient-tracker",
+    "analytics"
+  ],
+  "author": "Restaurant Tracker",
+  "license": "MIT"
+}
